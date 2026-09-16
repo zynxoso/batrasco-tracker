@@ -303,7 +303,7 @@ export function TrackerLocationsMap({
           >
             <Popup>
               <div className="text-sm">
-                <div className="font-bold">{v.plateNumber}</div>
+                <div className="font-bold">Unit {v.plateNumber}</div>
                 <div className="text-gray-600">{v.driver}</div>
                 <div>{v.speed} km/h</div>
                 {v.lastUpdated && (

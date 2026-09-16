@@ -35,9 +35,8 @@ export function StationList({ stations, vehicles, calculateETA }: StationListPro
                 <MapPin className="w-6 h-6 text-blue-600" />
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-bold text-gray-900">Station {station.stationNumber}</h3>
+                <h3 className="font-bold text-gray-900">Station {station.stationNumber} · {station.location}</h3>
                 <p className="text-sm text-gray-600 truncate" title={station.name}>{station.name}</p>
-                <p className="text-xs text-gray-500">{station.location}</p>
               </div>
             </div>
 
@@ -72,24 +71,13 @@ export function StationList({ stations, vehicles, calculateETA }: StationListPro
                       className={`p-3 rounded-lg border ${
                         isArrived 
                           ? 'bg-blue-50 border-blue-300' 
-                          : false
-                          ? 'bg-yellow-50 border-yellow-300'
                           : 'bg-gray-50 border-gray-200'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <Bus className="w-4 h-4 text-gray-600" />
-                          <span className="font-semibold text-sm">{vehicle.plateNumber}</span>
-                        </div>
-                        <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                          isArrived
-                            ? 'bg-blue-500 text-white'
-                            : false
-                            ? 'bg-yellow-500 text-white'
-                            : 'bg-blue-500 text-white'
-                        }`}>
-                          {isArrived ? 'AT STATION' : 'EN ROUTE'}
+                          <span className="font-semibold text-sm">Unit {vehicle.plateNumber}</span>
                         </div>
                       </div>
                       
@@ -97,9 +85,9 @@ export function StationList({ stations, vehicles, calculateETA }: StationListPro
                       <div className="flex items-center gap-2 text-sm mb-2">
                         <Clock className="w-5 h-5 text-gray-500" />
                         <div>
-                          <span className="text-gray-700">{isArrived ? 'Status: ' : 'ETA: '}</span>
-                          <strong className={`text-xl ${isArrived ? 'text-blue-600' : 'text-blue-600'}`}>
-                            {isArrived ? 'At station (boarding)' : eta}
+                          <span className="text-gray-700">ETA: </span>
+                          <strong className="text-xl text-blue-600">
+                            {isArrived ? 'Arrived' : eta}
                           </strong>
                         </div>
                       </div>

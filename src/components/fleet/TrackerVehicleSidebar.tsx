@@ -92,7 +92,7 @@ export function TrackerVehicleSidebar({
                   role="button"
                   tabIndex={0}
                   aria-pressed={selected}
-                  aria-label={`Select ${vehicle.plateNumber}, device ID ${vehicle.id}, on map`}
+                  aria-label={`Select Unit ${vehicle.plateNumber}, device ID ${vehicle.id}, on map`}
                   onClick={() => onSelectVehicle(vehicle.id)}
                   onKeyDown={(event) => {
                     if (event.key === 'Enter' || event.key === ' ') {
@@ -116,7 +116,7 @@ export function TrackerVehicleSidebar({
 
                   <div className="flex items-start justify-between gap-3 pl-2">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-bold text-white">{vehicle.plateNumber}</div>
+                      <div className="truncate text-sm font-bold text-white">Unit {vehicle.plateNumber}</div>
                       {driverLabel ? <div className="truncate text-xs text-slate-400">{driverLabel}</div> : null}
                       <div
                         className="mt-0.5 truncate text-[10px] leading-snug text-slate-500"

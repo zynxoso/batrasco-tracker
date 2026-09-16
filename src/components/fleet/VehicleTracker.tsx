@@ -18,11 +18,6 @@ export function VehicleTracker({
   onVehicleSelect,
   calculateETA: _calculateETA,
 }: VehicleTrackerProps) {
-  const getStatusColor = (status: string | undefined) =>
-    status === 'online' ? 'bg-green-500' : 'bg-gray-500';
-  const getStatusText = (status: string | undefined) =>
-    status === 'online' ? 'Online' : 'Offline';
-
   const isNone = false;
   const isAll = selectedVehicle === SELECTED_ALL || selectedVehicle === null || selectedVehicle === '';
   const isSpecificVehicle =
@@ -82,7 +77,7 @@ export function VehicleTracker({
           <option value={SELECTED_ALL}>All vehicles</option>
           {vehicles.map((v) => (
             <option key={v.id} value={v.id}>
-              {v.plateNumber} – {v.driver}
+              Unit {v.plateNumber} – {v.driver}
             </option>
           ))}
         </select>
@@ -109,14 +104,11 @@ export function VehicleTracker({
         <div className="p-3 rounded-lg border-2 border-blue-500 bg-blue-50 transition-all cursor-default">
           <div className="flex items-start justify-between mb-2">
             <div>
-              <div className="text-xs font-bold text-gray-900">{displayedVehicle.plateNumber}</div>
+              <div className="text-xs font-bold text-gray-900">Unit {displayedVehicle.plateNumber}</div>
               <div className="text-xs text-gray-600 flex items-center gap-1">
                 <User className="w-3 h-3" />
                 {displayedVehicle.driver}
               </div>
-            </div>
-            <div className={`${getStatusColor(displayedVehicle.status)} text-white text-xs px-2 py-0.5 rounded-full`}>
-              {getStatusText(displayedVehicle.status)}
             </div>
           </div>
 
@@ -156,7 +148,7 @@ export function VehicleTracker({
           <div>
             <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className={`h-full ${getStatusColor(displayedVehicle.status)} transition-all duration-500`}
+                className="h-full bg-blue-600 transition-all duration-500"
                 style={{ width: `${displayedVehicle.currentPosition}%` }}
               />
             </div>

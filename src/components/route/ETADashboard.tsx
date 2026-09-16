@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, AlertCircle, CheckCircle, Timer, Bus } from 'lucide-react';
+import { Clock, AlertCircle, Timer, Bus } from 'lucide-react';
 import { Station, Vehicle } from '../../App';
 import {
   ETA_MIN_EFFECTIVE_SPEED_KMH,
@@ -12,7 +12,6 @@ import {
 import {
   entriesByStationForAllVehicles,
   getDestinationStationForList,
-  stationVehicleStatusLabel,
   syncDepartedTimestamps,
   type StationVehicleStatus,
 } from '../../lib/fleet/vehicles-by-station';
@@ -32,19 +31,6 @@ function formatClockTime(value: number): string {
     hour: 'numeric',
     minute: '2-digit',
   });
-}
-
-function statusBadgeClass(status: StationVehicleStatus): string {
-  if (status === 'at_station') {
-    return 'border border-blue-400 bg-blue-100 text-blue-900';
-  }
-  if (status === 'arriving') {
-    return 'border border-amber-400 bg-amber-50 text-amber-900';
-  }
-  if (status === 'departed') {
-    return 'border border-slate-200 bg-slate-50 text-slate-800';
-  }
-  return 'bg-gray-100 text-gray-700';
 }
 
 function StationVehicleRows({
@@ -95,6 +81,17 @@ function StationVehicleRows({
       {entries.map(({ vehicle, status }) => {
         const destination = getDestinationStationForList(vehicle, stations, station, status);
         const isSelected = selectedVehicle === vehicle.id;
+        const legKm = linearDistanceKmToStation(vehicle, station);
+        const vehicleEta = (() => {
+          if (legKm === null) return null;
+          if (legKm <= 0.01) return 'Arrived';
+          const speedForEta =
+            vehicle.speed > 0 ? effectiveSpeedKmhForEta(vehicle.speed) : ETA_MIN_EFFECTIVE_SPEED_KMH;
+          const effSpeed = Math.max(speedForEta, ETA_MIN_EFFECTIVE_SPEED_KMH);
+          const timeInMinutes = Math.round((legKm / effSpeed) * 60);
+          return timeInMinutes < 1 ? '< 1 min' : `${timeInMinutes} min`;
+        })();
+
         return (
           <li key={vehicle.id}>
             <button
@@ -112,10 +109,7 @@ function StationVehicleRows({
                 <span
                   className={`truncate font-semibold text-gray-900 ${lg ? 'text-sm sm:text-base' : 'text-[11px]'}`}
                 >
-                  {vehicle.plateNumber}
-                  {vehicle.status === 'offline' && (
-                    <span className="ml-1 font-normal text-gray-500">(off)</span>
-                  )}
+                  Unit {vehicle.plateNumber}
                 </span>
                 {status === 'departed' && destination && (
                   <span
@@ -125,20 +119,16 @@ function StationVehicleRows({
                     → {destination.location}
                   </span>
                 )}
-                {status === 'arriving' && (
-                  <span className={`text-gray-600 ${lg ? 'text-xs sm:text-sm' : 'text-[10px]'}`}>To this stop</span>
-                )}
-                {status === 'at_station' && (
-                  <span className={`text-gray-600 ${lg ? 'text-xs sm:text-sm' : 'text-[10px]'}`}>At this stop</span>
-                )}
               </div>
-              <span
-                className={`shrink-0 rounded font-semibold uppercase tracking-wide ${statusBadgeClass(status)} ${
-                  lg ? 'px-2 py-1 text-[11px] sm:text-xs' : 'px-1.5 py-0.5 text-[9px]'
-                }`}
-              >
-                {stationVehicleStatusLabel(status)}
-              </span>
+              {vehicleEta && (
+                <span
+                  className={`shrink-0 rounded font-semibold tabular-nums border border-blue-200 bg-blue-50 text-blue-800 ${
+                    lg ? 'px-2 py-1 text-[11px] sm:text-xs' : 'px-1.5 py-0.5 text-[9px]'
+                  }`}
+                >
+                  {vehicleEta}
+                </span>
+              )}
             </button>
           </li>
         );
@@ -293,7 +283,7 @@ export function ETADashboard({
               ← All stations
             </Link>
             <p className="min-w-0 flex-1 text-xs text-white/95 sm:text-sm md:text-base">
-              <span className="font-bold text-white">Station {focusedStation.stationNumber}</span>
+              <span className="font-bold text-white">Station {focusedStation.stationNumber} · {focusedStation.location}</span>
               <span className="mx-1 text-white/55 sm:mx-1.5" aria-hidden>
                 ·
               </span>
@@ -364,17 +354,16 @@ export function ETADashboard({
                     className="text-base font-medium text-gray-600 sm:text-lg"
                     title={station.location}
                   >
-                    {station.location}
+                    Station {station.stationNumber} · {station.location} ({station.name})
                   </p>
                 ) : (
                   <>
                     <h3 className="text-sm font-bold text-gray-900">
-                      Station {station.stationNumber}
+                      Station {station.stationNumber} · {station.location}
                     </h3>
                     <p className="truncate text-xs text-gray-600" title={station.name}>
                       {station.name}
                     </p>
-                    <p className="text-[10px] text-gray-500">{station.location}</p>
                   </>
                 )}
               </div>
@@ -464,7 +453,7 @@ export function ETADashboard({
                               <div
                                 className={`font-bold text-gray-900 ${isStationFocus ? 'text-base sm:text-lg md:text-xl' : 'text-xs'}`}
                               >
-                                {arrival.vehicle.plateNumber}
+                                Unit {arrival.vehicle.plateNumber}
                               </div>
                               {isDelayed && (
                                 <AlertCircle
@@ -495,20 +484,6 @@ export function ETADashboard({
                               >
                                 {arrival.eta}
                               </div>
-                              {isArriving && (
-                                <div
-                                  className={`mt-2 flex items-center justify-center gap-2 ${isStationFocus ? 'mt-3' : 'mt-1 gap-1'}`}
-                                >
-                                  <CheckCircle
-                                    className={`text-green-600 ${isStationFocus ? 'h-5 w-5 sm:h-6 sm:w-6' : 'h-3 w-3'}`}
-                                  />
-                                  <span
-                                    className={`font-semibold text-green-700 ${isStationFocus ? 'text-sm sm:text-base' : 'text-xs'}`}
-                                  >
-                                    ARRIVING
-                                  </span>
-                                </div>
-                              )}
                             </div>
 
                             <div
@@ -550,7 +525,7 @@ export function ETADashboard({
                           <div
                             className={`font-bold text-gray-900 ${isStationFocus ? 'text-base sm:text-lg md:text-xl' : 'text-xs'}`}
                           >
-                            {departedPreview.vehicle.plateNumber}
+                            Unit {departedPreview.vehicle.plateNumber}
                           </div>
                         </div>
                         <div
@@ -601,7 +576,7 @@ export function ETADashboard({
                           <div
                             className={`font-bold text-gray-900 ${isStationFocus ? 'text-base sm:text-lg md:text-xl' : 'text-xs'}`}
                           >
-                            {nextAlongRoutePreview.vehicle.plateNumber}
+                            Unit {nextAlongRoutePreview.vehicle.plateNumber}
                           </div>
                         </div>
                         <div

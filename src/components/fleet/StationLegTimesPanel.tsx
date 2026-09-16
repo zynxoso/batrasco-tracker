@@ -90,7 +90,7 @@ export function StationLegTimesPanel({
               }
             >
               <span className={dark ? 'font-semibold tabular-nums text-white/95' : 'font-semibold tabular-nums text-slate-900'}>
-                {r.plateNumber}
+                Unit {r.plateNumber}
               </span>
               <span className={dark ? 'text-white/90' : 'text-slate-700'}>
                 Stop {r.fromOrder} → {r.toOrder}

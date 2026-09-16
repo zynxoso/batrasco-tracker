@@ -143,7 +143,7 @@ export function RouteMap({
               {/* Selected Vehicle Info */}
               {isSelected && (
                 <div className="absolute -top-14 left-1/2 -translate-x-1/2 bg-gray-900 text-white rounded shadow-lg p-2 w-28 z-10">
-                  <div className="text-xs font-bold">{vehicle.plateNumber}</div>
+                  <div className="text-xs font-bold">Unit {vehicle.plateNumber}</div>
                   <div className="text-xs opacity-80">
                     {vehicle.speed} km/h
                   </div>

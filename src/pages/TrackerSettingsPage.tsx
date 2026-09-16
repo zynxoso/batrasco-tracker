@@ -260,7 +260,7 @@ function TrackValidatorHelpContent() {
         </h3>
         <ol className="tracker-settings-page__track-instructions-steps">
           <li>
-            Scan the <strong>sidebar</strong> for plate numbers, signal state (Live / Delayed / Offline), and track
+            Scan the <strong>sidebar</strong> for unit numbers, signal state (Live / Delayed / Offline), and track
             pills.
           </li>
           <li>
@@ -967,7 +967,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                           </div>
                           <div className="tracker-settings-page__device-item-main">
                             <div className="tracker-settings-page__device-item-text-cell">
-                              <div className="tracker-settings-page__device-item-plate">{vehicle.plateNumber}</div>
+                              <div className="tracker-settings-page__device-item-plate">Unit {vehicle.plateNumber}</div>
                               {driverLabel ? (
                                 <div className="tracker-settings-page__device-item-sub">{driverLabel}</div>
                               ) : null}
@@ -1038,7 +1038,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                           className="tracker-settings-page__device-expand tracker-ui-press"
                           aria-expanded={expanded}
                           title={expanded ? 'Hide details' : 'Device details'}
-                          aria-label={`${expanded ? 'Collapse' : 'Expand'} ${vehicle.plateNumber} details`}
+                          aria-label={`${expanded ? 'Collapse' : 'Expand'} Unit ${vehicle.plateNumber} details`}
                         >
                           <ChevronDown className={cn('tracker-settings-page__device-expand-icon', expanded && 'tracker-settings-page__device-expand-icon--open')} aria-hidden />
                         </button>
@@ -1062,7 +1062,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                 <div className="min-w-0">
                   <div className="tracker-settings-page__device-detail-popout-eyebrow">Device details</div>
                   <div id="tracker-device-detail-title" className="tracker-settings-page__device-detail-popout-title">
-                    {expandedVehicle.plateNumber}
+                    Unit {expandedVehicle.plateNumber}
                   </div>
                   {expandedVehicle.driver &&
                   expandedVehicle.driver.trim() &&
@@ -1082,7 +1082,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                 <button
                   type="button"
                   className="tracker-settings-page__device-detail-popout-close tracker-ui-press"
-                  aria-label={`Close details for ${expandedVehicle.plateNumber}`}
+                  aria-label={`Close details for Unit ${expandedVehicle.plateNumber}`}
                   onClick={() => setExpandedVehicleId(null)}
                 >
                   <X className="h-4 w-4" aria-hidden />
@@ -1183,7 +1183,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                   </div>
                   <div className="tracker-settings-page__map-controls-focus-row">
                     <div className="tracker-settings-page__map-controls-focus min-w-0">
-                      {selectedVehicle?.plateNumber ?? 'Fleet overview'}
+                      {selectedVehicle ? `Unit ${selectedVehicle.plateNumber}` : 'Fleet overview'}
                     </div>
                     {selectedVehicle ? (
                       <button
@@ -1219,7 +1219,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                       <div className="min-w-0">
                         <div className="tracker-settings-page__history-shell-eyebrow">Recent route points</div>
                         <div className="tracker-settings-page__history-device-name">
-                          {selectedVehicle ? selectedVehicle.plateNumber : 'No vehicle selected'}
+                          {selectedVehicle ? `Unit ${selectedVehicle.plateNumber}` : 'No vehicle selected'}
                         </div>
                       </div>
                       <div className="tracker-settings-page__history-count" aria-live="polite">

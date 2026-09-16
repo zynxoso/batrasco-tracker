@@ -39,7 +39,7 @@ type StationDefinition = Omit<Station, 'position'>;
 const stationDefinitions: StationDefinition[] = [
   {
     id: '1',
-    stationNumber: 3,
+    stationNumber: 1,
     name: 'Palico - Balayan',
     location: 'Batangas City',
     latitude: 13.7641749,
@@ -55,7 +55,7 @@ const stationDefinitions: StationDefinition[] = [
     },
   },
   { id: '2', stationNumber: 2, name: '26 Makalintal Avenue', location: 'San Jose', latitude: 13.8785677, longitude: 121.1042709 },
-  { id: '3', stationNumber: 1, name: 'J.P. Laurel Hwy', location: 'Lipa City', latitude: 13.9394312, longitude: 121.122812 },
+  { id: '3', stationNumber: 3, name: 'J.P. Laurel Hwy', location: 'Lipa City', latitude: 13.9394312, longitude: 121.122812 },
 ];
 
 export const stations: Station[] = stationDefinitions.map((def, i) => {
