@@ -18,11 +18,17 @@ export default defineConfig(({ mode }) => {
         env.SUPABASE_PUBLISHABLE_KEY ||
         '';
 
+    const cartoApiKey =
+        env.VITE_CARTO_API_KEY ||
+        env.CARTO_API_KEY ||
+        '';
+
     return {
         plugins: [tailwindcss(), react()],
         define: {
             'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
             'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnon),
+            'import.meta.env.VITE_CARTO_API_KEY': JSON.stringify(cartoApiKey),
         },
         resolve: {
             alias: {
