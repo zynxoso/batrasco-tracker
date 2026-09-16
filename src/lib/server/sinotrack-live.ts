@@ -120,7 +120,7 @@ function parseRows(data: unknown): SinotrackLiveReport[] {
   if (iTe < 0 || iLat < 0 || iLon < 0) return [];
 
   return (d.m_arrRecord as unknown[])
-    .map((rowRaw) => {
+    .map((rowRaw): SinotrackLiveReport | null => {
       if (!Array.isArray(rowRaw)) return null;
       const row = rowRaw as unknown[];
       const device_id = String(row[iTe] ?? '').trim();
@@ -136,7 +136,7 @@ function parseRows(data: unknown): SinotrackLiveReport[] {
         lng,
         reported_at,
         ...(Number.isFinite(direction) ? { direction } : {}),
-      } satisfies SinotrackLiveReport;
+      };
     })
     .filter((v): v is SinotrackLiveReport => v !== null);
 }

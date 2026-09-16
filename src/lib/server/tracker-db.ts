@@ -256,7 +256,7 @@ async function getSupabaseClient(): Promise<{
       let latestErr: { code?: string; message?: string } | null = null;
       for (let i = 0; i < TRACKER_LATEST_SELECT_TIERS.length; i++) {
         const res = await supabase.from('tracker_latest').select(TRACKER_LATEST_SELECT_TIERS[i]);
-        latestData = res.data as Record<string, unknown>[] | null;
+        latestData = res.data as unknown as Record<string, unknown>[] | null;
         latestErr = res.error;
         if (!latestErr) break;
         if (!isTrackerLatestSelectRetryable(latestErr)) break;
@@ -492,8 +492,8 @@ async function getLatestVehiclesFromDbWithMetaUnsafe(): Promise<GetLatestResult>
       remainingDistancePercent,
       remainingDistanceKm,
       lastUpdated:
-        typeof (r as { updated_at?: unknown }).updated_at === 'string' && (r as { updated_at: string }).updated_at.trim()
-          ? (r as { updated_at: string }).updated_at
+        typeof (r as unknown as { updated_at?: unknown }).updated_at === 'string' && (r as unknown as { updated_at: string }).updated_at.trim()
+          ? (r as unknown as { updated_at: string }).updated_at
           : r.reported_at,
       ...(r.latitude != null && r.longitude != null ? { latitude: r.latitude, longitude: r.longitude } : {}),
       etaInDirectionOfTravel,
