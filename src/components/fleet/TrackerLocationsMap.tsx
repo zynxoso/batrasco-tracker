@@ -207,8 +207,16 @@ export function TrackerLocationsMap({
       <MapContainer center={defaultCenter} zoom={11} className="h-full w-full z-0" scrollWheelZoom>
         <InvalidateMapSize />
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+          attribution={
+            import.meta.env.VITE_CARTO_API_KEY
+              ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          }
+          url={
+            import.meta.env.VITE_CARTO_API_KEY
+              ? `https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=${import.meta.env.VITE_CARTO_API_KEY}`
+              : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+          }
         />
         <Polyline
           positions={BATRASCO_ROUTE_PATH}

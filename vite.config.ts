@@ -5,8 +5,18 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), '');
-    const supabaseUrl = env.VITE_SUPABASE_URL || env.SUPABASE_URL || '';
-    const supabaseAnon = env.VITE_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.SUPABASE_PUBLISHABLE_KEY || '';
+    const supabaseUrl =
+        env.VITE_SUPABASE_URL ||
+        env.NEXT_PUBLIC_SUPABASE_URL ||
+        env.SUPABASE_URL ||
+        '';
+    const supabaseAnon =
+        env.VITE_SUPABASE_ANON_KEY ||
+        env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+        env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+        env.SUPABASE_ANON_KEY ||
+        env.SUPABASE_PUBLISHABLE_KEY ||
+        '';
 
     return {
         plugins: [tailwindcss(), react()],
