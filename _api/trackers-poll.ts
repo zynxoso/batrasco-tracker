@@ -133,6 +133,36 @@ export async function POST(request: Request) {
   return handle(request);
 }
 
+/** Universal Vercel handler supporting both Node.js (req, res) and Web Standard (Request) environments. */
+export default async function handler(req: any, res?: any) {
+  if (res && typeof res.status === 'function') {
+    try {
+      const url = `http://${req.headers?.host || 'localhost'}${req.url || '/api/trackers-poll'}`;
+      const headers = new Headers();
+      if (req.headers) {
+        for (const [k, v] of Object.entries(req.headers)) {
+          if (v) headers.set(k, Array.isArray(v) ? v.join(',') : String(v));
+        }
+      }
+      const method = req.method || 'POST';
+      let body: string | undefined = undefined;
+      if (method !== 'GET' && method !== 'HEAD' && req.body) {
+        body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      }
+      const webReq = new Request(url, { method, headers, ...(body ? { body } : {}) });
+      const response = await handle(webReq);
+      res.status(response.status);
+      response.headers.forEach((v, k) => res.setHeader(k, v));
+      const text = await response.text();
+      return res.end(text);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : String(e);
+      return res.status(500).json({ ok: false, error: err });
+    }
+  }
+  return handle(req);
+}
+
 async function handle(request: Request): Promise<Response> {
   const pollSecret = process.env.TRACKER_POLL_SECRET;
   const cronSecret = process.env.CRON_SECRET;

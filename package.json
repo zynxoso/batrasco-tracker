@@ -5,7 +5,8 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
-        "build": "vite build",
+        "build": "vite build && esbuild _api/*.ts --bundle --outdir=api --platform=node --format=esm --packages=external",
+        "build:api": "esbuild _api/*.ts --bundle --outdir=api --platform=node --format=esm --packages=external",
         "preview": "vite preview",
         "simulate-tracker-quick": "node scripts/simulate-tracker-test.js",
         "simulate-tracker-realistic": "node scripts/simulate-tracker-realistic.js"
@@ -40,6 +41,7 @@
         "@supabase/supabase-js": "^2.49.1",
         "@tailwindcss/vite": "^4.3.3",
         "@vercel/kv": "^3.0.0",
+        "esbuild": "^0.25.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "leaflet": "^1.9.4",
