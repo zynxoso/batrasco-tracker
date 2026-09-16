@@ -1,0 +1,171 @@
+/**
+ * Batrasco brand palette (applied site-wide via Tailwind color tokens).
+ * Navy / purple: #17256b, #253272, #484d80, #727395
+ * Warm accent: #c23e01, #c3431b, #ca5730, #c56949
+ */
+@layer theme {
+  :root,
+  :host {
+    --batrasco-navy-900: #17256b;
+    --batrasco-navy-800: #253272;
+    --batrasco-purple: #484d80;
+    --batrasco-muted: #727395;
+    --batrasco-orange-deep: #c23e01;
+    --batrasco-orange-red: #c3431b;
+    --batrasco-orange: #ca5730;
+    --batrasco-coral: #c56949;
+
+    /* Route map: “toward Batangas” = logo warm side (dark orange) */
+    --color-batangas-direction: #c23e01;
+
+    /* Blue scale → navy family (replaces default Tailwind blue) */
+    --color-blue-50: #f3f4fb;
+    --color-blue-100: #e6e9f5;
+    --color-blue-200: #d0d5ea;
+    --color-blue-300: #aeb5d9;
+    --color-blue-400: #7d84b0;
+    --color-blue-500: #63699a;
+    --color-blue-600: #484d80;
+    --color-blue-700: #3a3f6e;
+    --color-blue-800: #253272;
+    --color-blue-900: #17256b;
+
+    /* Indigo → navy–violet */
+    --color-indigo-50: #f2f3fa;
+    --color-indigo-100: #e4e6f2;
+    --color-indigo-400: #6b70a3;
+    --color-indigo-500: #565b8f;
+    --color-indigo-600: #484d80;
+    --color-indigo-700: #353a6e;
+    --color-indigo-900: #17256b;
+
+    /* Purple */
+    --color-purple-50: #f5f4fa;
+    --color-purple-500: #636192;
+    --color-purple-600: #484d80;
+
+    /* Slate → cool neutrals aligned with brand */
+    --color-slate-50: #f8f8fb;
+    --color-slate-100: #eceef6;
+    --color-slate-200: #dcdfe9;
+    --color-slate-300: #c5c9d6;
+    --color-slate-400: #9ba0b5;
+    --color-slate-500: #727395;
+    --color-slate-600: #5a5e7a;
+    --color-slate-700: #484d68;
+    --color-slate-800: #353850;
+    --color-slate-900: #253272;
+
+    /* Violet — purple (distinct from amber/orange washes; use orange-* / amber-* for heat) */
+    --color-violet-50: #f3f1fa;
+    --color-violet-100: #e8e4f4;
+    --color-violet-200: #d4cfe8;
+    --color-violet-400: #8b7eb8;
+    --color-violet-500: #6b5b95;
+    --color-violet-600: #484d80;
+
+    /* Sky (info / loading) */
+    --color-sky-50: #f2f5fc;
+    --color-sky-100: #e4e9f4;
+    --color-sky-200: #c8d2eb;
+    --color-sky-400: #8b93b8;
+    --color-sky-500: #63699a;
+    --color-sky-600: #484d80;
+    --color-sky-800: #253272;
+    --color-sky-950: #17256b;
+
+    /* Amber / orange UI */
+    --color-amber-50: #fdf6f2;
+    --color-amber-100: #f8e8de;
+    --color-amber-200: #f0d0c2;
+    --color-amber-300: #e8b39a;
+    --color-amber-400: #d9845c;
+    --color-amber-500: #ca5730;
+    --color-amber-600: #c3431b;
+    --color-amber-950: #3d1308;
+
+    /* Orange (tabs, emphasis) */
+    --color-orange-50: #fdf6f2;
+    --color-orange-100: #f8e8de;
+    --color-orange-500: #ca5730;
+    --color-orange-600: #c23e01;
+    --color-orange-700: #a23401;
+
+    /* Red → brand orange-red (errors still readable) */
+    --color-red-50: #fdf3f0;
+    --color-red-100: #fce8e2;
+    --color-red-200: #f5cdc0;
+    --color-red-500: #c3431b;
+    --color-red-600: #c23e01;
+    --color-red-700: #a23401;
+    --color-red-800: #7d2904;
+    --color-red-900: #4a1905;
+    --color-red-950: #2c0f03;
+
+    /* Yellow (delays) — warm, on-brand */
+    --color-yellow-50: #fffbeb;
+    --color-yellow-100: #fef3c7;
+    --color-yellow-400: #e8b84a;
+    --color-yellow-500: #d4a02e;
+    --color-yellow-600: #b8891a;
+
+    /* Gray — slightly cool */
+    --color-gray-200: #e8eaf2;
+    --color-gray-300: #d4d7e3;
+    --color-gray-500: #727395;
+    --color-gray-600: #5a5e7a;
+    --color-gray-700: #484d68;
+    --color-gray-800: #353850;
+    --color-gray-900: #253272;
+  }
+}
+
+:root {
+  --background: #fafbfe;
+  --foreground: #253272;
+  --card: #ffffff;
+  --card-foreground: #253272;
+  --popover: #ffffff;
+  --popover-foreground: #253272;
+  --primary: #253272;
+  --primary-foreground: #ffffff;
+  --secondary: #eceef6;
+  --secondary-foreground: #253272;
+  --muted: #eceef4;
+  --muted-foreground: #727395;
+  --accent: #e8eaf5;
+  --accent-foreground: #253272;
+  --destructive: #c23e01;
+  --destructive-foreground: #ffffff;
+  --border: rgba(37, 50, 114, 0.12);
+  --input: transparent;
+  --input-background: #f3f4fa;
+  --switch-background: #c5c9d6;
+  --ring: #484d80;
+  --chart-1: #17256b;
+  --chart-2: #ca5730;
+  --chart-3: #484d80;
+  --chart-4: #c56949;
+  --chart-5: #727395;
+  --sidebar: #f8f8fb;
+  --sidebar-foreground: #253272;
+  --sidebar-primary: #253272;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eceef6;
+  --sidebar-accent-foreground: #253272;
+  --sidebar-border: #dcdfe9;
+  --sidebar-ring: #484d80;
+}
+
+.dark {
+  --background: #17256b;
+  --foreground: #f8f8fb;
+  --card: #253272;
+  --card-foreground: #f8f8fb;
+  --primary: #e8eaf5;
+  --primary-foreground: #17256b;
+  --muted: rgba(255, 255, 255, 0.12);
+  --muted-foreground: #c5c9d6;
+  --border: rgba(255, 255, 255, 0.14);
+  --ring: #c56949;
+}

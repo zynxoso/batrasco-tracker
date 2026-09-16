@@ -1,0 +1,55 @@
+@import "tailwindcss";
+@import "./styles/batrasco-theme.css";
+
+/* Leaflet tiles are <img>s; preflight's img { max-width: 100% } breaks tile layout. */
+.leaflet-container img.leaflet-tile {
+  max-width: none !important;
+}
+
+/* Fleet map vehicle markers: enforce visual state on Leaflet SVG paths. */
+.leaflet-container .tracker-map-marker {
+  transition:
+    fill 160ms ease,
+    stroke 160ms ease,
+    fill-opacity 160ms ease,
+    stroke-width 160ms ease;
+}
+
+.leaflet-container .tracker-map-marker--on-track {
+  stroke: #2563eb !important;
+  fill: #3b82f6 !important;
+  fill-opacity: 0.92 !important;
+}
+
+.leaflet-container .tracker-map-marker--off-track {
+  stroke: #c3431b !important;
+  fill: #d9845c !important;
+  fill-opacity: 0.92 !important;
+}
+
+.leaflet-container .tracker-map-marker--tracking-off {
+  stroke: #6b7280 !important;
+  fill: #9ca3af !important;
+  fill-opacity: 0.9 !important;
+}
+
+.leaflet-container .tracker-map-marker--focused.tracker-map-marker--on-track {
+  stroke: #1d4ed8 !important;
+  fill: #60a5fa !important;
+  fill-opacity: 0.95 !important;
+  stroke-width: 3 !important;
+}
+
+.leaflet-container .tracker-map-marker--focused.tracker-map-marker--off-track {
+  stroke: #a23401 !important;
+  fill: #f0d0c2 !important;
+  fill-opacity: 0.95 !important;
+  stroke-width: 3 !important;
+}
+
+.leaflet-container .tracker-map-marker--focused.tracker-map-marker--tracking-off {
+  stroke: #4b5563 !important;
+  fill: #cbd5e1 !important;
+  fill-opacity: 0.95 !important;
+  stroke-width: 3 !important;
+}

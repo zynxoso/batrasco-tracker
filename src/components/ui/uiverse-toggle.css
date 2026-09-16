@@ -1,0 +1,87 @@
+/* Adapted from Uiverse.io by Shoh2008 — track + ::after knob on span (input::after is not portable). */
+
+.uiverse-toggle {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  cursor: pointer;
+  flex-shrink: 0;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  line-height: 0;
+}
+
+.uiverse-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.uiverse-toggle .uiverse-toggle-track {
+  position: relative;
+  display: block;
+  width: 75px;
+  height: 25px;
+  border-radius: 25px;
+  background-image:
+    linear-gradient(hsla(0, 0%, 0%, 0.1), hsla(0, 0%, 100%, 0.1)),
+    linear-gradient(to right, #f66 50%, #6cf 50%);
+  background-size:
+    100% 100%,
+    200% 100%;
+  background-position:
+    0 0,
+    15px 0;
+  box-shadow:
+    inset 0 1px 4px hsla(0, 0%, 0%, 0.5),
+    inset 0 0 10px hsla(0, 0%, 0%, 0.5),
+    0 0 0 1px hsla(0, 0%, 0%, 0.1),
+    0 -1px 2px 2px hsla(0, 0%, 0%, 0.25),
+    0 2px 2px 2px hsla(0, 0%, 100%, 0.75);
+  overflow: hidden;
+  transition:
+    background-position 0.25s ease,
+    box-shadow 0.15s ease;
+}
+
+.uiverse-toggle .uiverse-toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: block;
+  width: 50px;
+  height: 25px;
+  border-radius: 25px;
+  background-color: #eee;
+  background-image: linear-gradient(hsla(0, 0%, 100%, 0.1), hsla(0, 0%, 0%, 0.1));
+  box-shadow:
+    inset 0 1px 1px 1px hsla(0, 0%, 100%, 1),
+    inset 0 -1px 1px 1px hsla(0, 0%, 0%, 0.25),
+    0 1px 3px 1px hsla(0, 0%, 0%, 0.5),
+    0 0 2px hsla(0, 0%, 0%, 0.25);
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+
+.uiverse-toggle.uiverse-toggle--on .uiverse-toggle-track {
+  background-position:
+    0 0,
+    35px 0;
+}
+
+.uiverse-toggle.uiverse-toggle--on .uiverse-toggle-track::after {
+  transform: translateX(25px);
+}
+
+.uiverse-toggle:focus-visible .uiverse-toggle-track {
+  outline: 2px solid var(--color-blue-500, #3b82f6);
+  outline-offset: 2px;
+}
+
+.uiverse-toggle:focus:not(:focus-visible) .uiverse-toggle-track {
+  outline: none;
+}

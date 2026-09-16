@@ -1,0 +1,28 @@
+/* Full-height root so fleet map (flex + absolute fill) receives a bounded viewport height. */
+html {
+  height: 100%;
+}
+body {
+  margin: 0;
+  /* 100dvh / -webkit-fill-available avoid mobile 100vh including browser chrome; 100% matches html. */
+  min-height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+#root {
+  display: flex;
+  min-height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  flex-direction: column;
+  /* Notch / home indicator — keeps content off curved edges when viewport-fit=cover */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}

@@ -1,0 +1,9 @@
+{
+  "name": "st903-tcp-bridge",
+  "version": "1.0.0",
+  "description": "TCP → HTTP bridge for Sinotrack ST-903; forwards to Vercel ingest",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

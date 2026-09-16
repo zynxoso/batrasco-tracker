@@ -1,0 +1,2397 @@
+/*
+ * Sidebar + map row layout: explicit flex rules keep the fleet settings + map row stable
+ * across viewports (complements Tailwind classes in TSX).
+ */
+
+.tracker-settings-page__split {
+  display: flex;
+  flex: 1 1 0%;
+  flex-direction: row;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Mobile drawer: sidebar off-canvas; map uses full width */
+.tracker-settings-page__sidebar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  z-index: 1100;
+  background: var(--st-sidebar, #fff);
+  transition: transform 0.2s ease-out;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+@media (max-width: 767.98px) {
+  .tracker-settings-page__sidebar {
+    position: fixed;
+    left: 0;
+    top: 2.75rem;
+    bottom: 0;
+    width: min(100vw - 0px, 320px);
+    max-width: 320px;
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.12);
+    transform: translateX(-100%);
+  }
+
+  .tracker-settings-page__sidebar[data-drawer-open] {
+    transform: translateX(0);
+  }
+}
+
+@media (min-width: 768px) {
+  .tracker-settings-page__sidebar {
+    position: relative;
+    top: auto;
+    flex: 0 0 300px;
+    width: 300px;
+    min-width: 260px;
+    max-width: 320px;
+    transform: none !important;
+    box-shadow: none;
+    border-right: 1px solid var(--st-border, #e8eaec);
+  }
+}
+
+.tracker-settings-page__map-main {
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-left: 1px solid var(--st-border, #e8eaec);
+}
+
+@media (max-width: 767.98px) {
+  .tracker-settings-page__map-main {
+    border-left: none;
+  }
+}
+
+/* Map fills the stage (overrides TrackerLocationsMap default fixed heights) */
+.tracker-settings-page__map-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.tracker-settings-page__map-fill > div {
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100%;
+  border-radius: 0 !important;
+}
+
+.tracker-settings-page__drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1090;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: default;
+  background: rgb(0 0 0 / 0.35);
+  backdrop-filter: blur(1px);
+}
+
+@media (min-width: 768px) {
+  .tracker-settings-page__drawer-backdrop {
+    display: none !important;
+  }
+}
+
+.tracker-settings-page__mobile-only {
+  display: flex;
+  align-items: center;
+}
+
+.tracker-settings-page__mobile-only--text {
+  display: block;
+}
+
+.tracker-settings-page__desktop-only {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .tracker-settings-page__mobile-only,
+  .tracker-settings-page__mobile-only--text {
+    display: none !important;
+  }
+
+  .tracker-settings-page__desktop-only {
+    display: flex !important;
+  }
+
+  .tracker-settings-page__desktop-only.tracker-settings-page__topbar-tabs {
+    align-items: flex-end;
+    height: 100%;
+  }
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+@media (min-width: 768px) {
+  .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-stats {
+    gap: 7px;
+  }
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 7px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  white-space: nowrap;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-chip-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+  line-height: 1;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-chip-value {
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: #17256b;
+  font-variant-numeric: tabular-nums;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid #c8cfe8;
+  background: linear-gradient(180deg, #f4f6fc 0%, #e4e8f4 100%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #253272;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn:hover {
+  background: linear-gradient(180deg, #e4e8f4 0%, #c8cfe8 100%);
+  border-color: #727395;
+  color: #17256b;
+  box-shadow: 0 2px 8px rgba(72, 77, 128, 0.22);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn:focus-visible {
+  outline: 2px solid #484d80;
+  outline-offset: 2px;
+}
+
+@media (max-width: 767.98px) {
+  .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn {
+    padding: 4px 8px;
+  }
+
+  .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+/* Stacking: map base vs HUD (bundled CSS lacks z-[…] utilities) */
+.tracker-settings-page__map-main > div.absolute:not(.tracker-settings-page__map-fill) {
+  z-index: 1200;
+}
+
+.tracker-settings-page__hud-top {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1280px) {
+  .tracker-settings-page__hud-top {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-end;
+  }
+}
+
+.tracker-settings-page__hud-metrics {
+  display: grid;
+  gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .tracker-settings-page__hud-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* —— Fleet UX: hierarchy, panels, device list, map HUD (scoped) —— */
+.tracker-settings-page.tracker-ui {
+  --fleet-panel-bg: #ffffff;
+  --fleet-panel-border: #eceef6;
+  --fleet-title: #253272;
+  --fleet-muted: #727395;
+  --fleet-live-bg: #dcfce7;
+  --fleet-live-fg: #166534;
+  --fleet-delay-bg: #fef9c3;
+  --fleet-delay-fg: #854d0e;
+  --fleet-off-bg: #f3f4f6;
+  --fleet-off-fg: #6b7280;
+  --fleet-active-bg: #e4e8f4;
+  --fleet-active-border: #253272;
+  --fleet-selected-ring: #484d80;
+  --fleet-selected-bg: #f6f7fc;
+  --fleet-error-bg: #fdece8;
+  --fleet-error-fg: #a23401;
+  --sidebar-list-bg: #eef0f7;
+  --sidebar-list-border: #dcdfe9;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__panel {
+  background: var(--fleet-panel-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--fleet-panel-border);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fleet-title);
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__panel-title--muted {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fleet-muted);
+  margin-bottom: 6px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__eyebrow {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fleet-title);
+  margin-bottom: 6px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__empty-device-title {
+  margin-top: 12px;
+  margin-bottom: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__sidebar-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  margin: 0 auto;
+  border-radius: 14px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__sidebar-empty-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__hud-top-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  pointer-events: none;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__hud-top-right > * {
+  pointer-events: auto;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-selected-float {
+  width: 100%;
+  max-width: 360px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-list {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.55) 0%, transparent 48px),
+    var(--sidebar-list-bg, #f1f5f9);
+  scrollbar-gutter: stable;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-list-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: -2px -4px 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset, 0 4px 12px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-rail--layout {
+  position: relative;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-rail--layout .tracker-settings-page__device-rail-item {
+  position: relative;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-rail-item {
+  list-style: none;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-list-toolbar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-list-toolbar-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #253272;
+  background: #e4e8f4;
+  border: 1px solid #9aa4cc;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item:hover {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item:focus-visible {
+  outline: none;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 0 0 2px #484d80;
+}
+
+/*
+ * Device row: thumb | one main column (title, badges, meta).
+ * Badges must not share a grid track with the plate — a 3-column grid gave the
+ * `1fr` text cell zero width (plate showed "7…") when pills were wide.
+ */
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item--grid {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 10px;
+  align-items: center;
+  margin-bottom: 0;
+  border-radius: 0;
+  padding: 10px 8px 10px 12px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-thumb-cell {
+  align-self: center;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(155deg, #ffffff 0%, #f1f5f9 100%);
+  color: #475569;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb--selected {
+  border-color: #727395;
+  background: linear-gradient(155deg, #e4e8f4 0%, #c8cfe8 55%, #9aa4cc 100%);
+  color: #17256b;
+  box-shadow:
+    0 0 0 1px rgba(14, 165, 233, 0.25),
+    0 4px 12px rgba(2, 132, 199, 0.18);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb-signal {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-main {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  min-width: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-text-cell {
+  min-width: 0;
+  padding-top: 1px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-plate {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: #17256b;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-sub {
+  margin-top: 2px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #64748b;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-device-id {
+  margin-top: 2px;
+  font-size: 10px;
+  line-height: 1.35;
+  color: #64748b;
+  letter-spacing: 0.01em;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-device-id-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-main .tracker-settings-page__device-item-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-start;
+  margin-left: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--fleet-muted);
+  line-height: 1.35;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-speed {
+  font-variant-numeric: tabular-nums;
+  color: #334155;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-speed strong {
+  font-weight: 700;
+  color: #17256b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-speed-unit {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-meta-sep {
+  color: #cbd5e1;
+  user-select: none;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-updated {
+  font-variant-numeric: tabular-nums;
+  color: #64748b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 0 0 1px rgba(255, 255, 255, 0.8) inset;
+  transition:
+    box-shadow 0.22s ease,
+    border-color 0.22s ease,
+    transform 0.22s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card:hover {
+  border-color: #cbd5e1;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.9) inset;
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tracker-settings-page.tracker-ui .tracker-settings-page__device-card,
+  .tracker-settings-page.tracker-ui .tracker-settings-page__device-card:hover {
+    transition-duration: 0.01ms;
+    transform: none;
+  }
+
+  .tracker-settings-page.tracker-ui .tracker-settings-page__device-expand-icon {
+    transition-duration: 0.01ms;
+  }
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--active {
+  background: linear-gradient(180deg, #f4f6fc 0%, #e4e8f4 100%);
+  border-color: #9aa4cc;
+  box-shadow:
+    0 0 0 1px rgba(14, 165, 233, 0.2),
+    0 6px 20px rgba(2, 132, 199, 0.12);
+  border-left: 4px solid var(--fleet-active-border);
+  /* Visually pin the selected device at the top of the scroll list. */
+  position: sticky;
+  top: 64px;
+  z-index: 3;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--expanded:not(.tracker-settings-page__device-card--active) {
+  border-color: #cbd5e1;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.07);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off {
+  border-color: #94a3b8;
+  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.55) inset;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(51, 65, 85, 0.62);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off > * {
+  position: relative;
+  z-index: 1;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-expand {
+  filter: grayscale(0.25);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-main,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-thumb-cell,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-expand-icon {
+  opacity: 0.55;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-plate,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-sub,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-device-id,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-device-id-value,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-speed strong,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-speed,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-item-updated {
+  color: #334155;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--tracking-off .tracker-settings-page__device-thumb {
+  border-color: #64748b;
+  background: linear-gradient(155deg, #94a3b8 0%, #64748b 100%);
+  color: #1f2937;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__device-item {
+  flex: 1 1 0%;
+  min-width: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__device-item:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card--active .tracker-settings-page__device-item:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__device-item-badges {
+  gap: 5px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__status-live,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__status-delayed,
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__status-offline {
+  font-size: 10px;
+  padding: 2px 7px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-card .tracker-settings-page__track-pill {
+  font-size: 10px;
+  padding: 2px 7px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-expand {
+  flex-shrink: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 44px;
+  padding: 0 8px;
+  border: none;
+  border-left: 1px solid rgba(226, 232, 240, 0.95);
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.65) 100%);
+  cursor: pointer;
+  color: var(--fleet-muted);
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-expand:hover {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+  color: var(--fleet-title);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-expand:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px #484d80;
+  z-index: 1;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-expand-icon {
+  width: 18px;
+  height: 18px;
+  transition: transform 0.22s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-expand-icon--open {
+  transform: rotate(180deg);
+}
+
+/* Expanded device row — telemetry & actions */
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-panel {
+  margin: 0 0 8px;
+  padding: 12px 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #e8eaec;
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) inset, 0 4px 14px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-panel--embedded {
+  margin: 0;
+  box-shadow: none;
+  border: 1px solid #e2e8f0;
+  background: linear-gradient(165deg, #ffffff 0%, #f1f5f9 100%);
+}
+
+/* Device details sheet — sidebar, between list and history */
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #e8eaec;
+  background: #f1f5f9;
+  box-shadow: 0 -6px 18px rgba(15, 23, 42, 0.07);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8eaec;
+  background: #fff;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #17256b;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-device-id {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #64748b;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-device-id-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-weight: 600;
+  color: #475569;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  margin: -4px -4px -4px 0;
+  border: 1px solid #e8eaec;
+  border-radius: 10px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-close:hover {
+  background: #f8fafc;
+  color: #17256b;
+  border-color: #cbd5e1;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-scroll {
+  flex: 0 0 auto;
+  padding: 10px 12px 12px;
+  overflow: visible;
+}
+
+/* Track validator instructions — floating modal (root level) */
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  box-sizing: border-box;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(100%, 440px);
+  max-height: min(92vh, 720px);
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow:
+    0 25px 50px -12px rgba(15, 23, 42, 0.28),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  overflow: hidden;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal--wide {
+  width: min(100%, 920px);
+  max-height: min(94vh, 820px);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #e8eaec;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  line-height: 1.2;
+  margin-bottom: 2px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-title {
+  font-size: 17px;
+  font-weight: 800;
+  color: #17256b;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-lead {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #64748b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-close {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: -6px -6px -6px 0;
+  border: 1px solid #e8eaec;
+  border-radius: 12px;
+  background: #fff;
+  color: #64748b;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-close:hover {
+  background: #f1f5f9;
+  color: #17256b;
+  border-color: #cbd5e1;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 16px 18px;
+  background: #f8fafc;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend--modal {
+  margin: 0;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions {
+  text-align: left;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-lead {
+  margin: 0 0 14px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #334155;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #e8eaec;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-section:first-of-type {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-h {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #17256b;
+  letter-spacing: -0.01em;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-p {
+  margin: 0 0 10px;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-p--tight {
+  margin-bottom: 0;
+  margin-top: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-section .tracker-settings-page__track-legend-list {
+  margin-top: 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-steps {
+  margin: 0;
+  padding-left: 1.15rem;
+  font-size: 12px;
+  line-height: 1.55;
+  color: #475569;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-steps li {
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-steps li:last-child {
+  margin-bottom: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-note {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill-hud-btn {
+  cursor: pointer;
+  border-radius: 8px;
+  outline-offset: 2px;
+  font: inherit;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill-hud-btn:focus-visible {
+  outline: 2px solid #484d80;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat {
+  border-radius: 10px;
+  border: 1px solid #eef2f6;
+  background: #fff;
+  padding: 10px 11px;
+  min-height: 4.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #808695;
+  line-height: 1.2;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: #17256b;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat-value--mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat-unit {
+  font-weight: 500;
+  color: #808695;
+  font-size: 12px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track {
+  border-radius: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e8eaec;
+  background: #f8fafc;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track--on {
+  border-color: #bbf7d0;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track--off {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #fffbeb 0%, #fff7ed 100%);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track--none {
+  border-color: #e2e8f0;
+  background: #f1f5f9;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+  margin-bottom: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #515a6e;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track-hint {
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track-body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-ingest {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid #e8eaec;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-ingest-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #808695;
+  margin-bottom: 2px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-ingest-state {
+  font-size: 13px;
+  font-weight: 600;
+  color: #17256b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-ingest-state--on {
+  color: #166534;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-ingest-state--off {
+  color: #9a3412;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-focus-btn {
+  width: 100%;
+  margin: 0;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid #253272;
+  background: linear-gradient(180deg, #e4e8f4 0%, #c8cfe8 100%);
+  color: #253272;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.15);
+  transition:
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.1s ease;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-focus-btn:hover {
+  background: linear-gradient(180deg, #c8cfe8 0%, #9aa4cc 100%);
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.22);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-focus-btn:active {
+  transform: scale(0.99);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-mapstatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-mapstatus--ok {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-mapstatus--wait {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-mapstatus-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-row--statuses {
+  flex-wrap: wrap;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--fleet-muted);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-item-meta strong {
+  color: var(--fleet-title);
+  font-weight: 600;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__signal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__signal-dot--live {
+  background: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.35);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__signal-dot--delayed {
+  background: #eab308;
+  box-shadow: 0 0 0 2px rgba(234, 179, 8, 0.35);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__signal-dot--offline {
+  background: #ef4444;
+  opacity: 0.85;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__signal-dot--tracking-off {
+  background: #9ca3af;
+  box-shadow: 0 0 0 2px rgba(148, 163, 184, 0.35);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__signal-dot--moving {
+  animation: tracker-fleet-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tracker-fleet-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.85;
+  }
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__status-live {
+  background: var(--fleet-live-bg);
+  color: var(--fleet-live-fg);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__status-delayed {
+  background: var(--fleet-delay-bg);
+  color: var(--fleet-delay-fg);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__status-offline {
+  background: var(--fleet-off-bg);
+  color: var(--fleet-off-fg);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__hud-top-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  width: 100%;
+  max-width: min(420px, 100%);
+  margin-left: auto;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-controls {
+  position: relative;
+  top: 0;
+  left: 0;
+  max-width: 420px;
+  padding: 10px 12px;
+  pointer-events: auto;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-controls-body {
+  font-size: 13px;
+  color: var(--fleet-muted);
+  line-height: 1.45;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-controls-focus-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-controls-focus {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--fleet-title);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-controls-clear {
+  flex-shrink: 0;
+  margin-top: 2px;
+  border: 0;
+  background: transparent;
+  padding: 2px 0 2px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-controls-clear:hover {
+  color: #1d4ed8;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__selected-device {
+  border: 2px solid var(--fleet-selected-ring);
+  background: var(--fleet-selected-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.12);
+  pointer-events: auto;
+  max-width: 420px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__selected-device-title {
+  margin-bottom: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 12px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-details dt {
+  font-weight: 600;
+  color: var(--fleet-title);
+  margin: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-details dd {
+  margin: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__device-details-track {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill--legend-trigger {
+  cursor: pointer;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend {
+  border: 1px solid #e8eaec;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #fafbfc 0%, #f4f6f8 100%);
+  padding: 10px 12px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #515a6e;
+  margin-bottom: 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-intro {
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #515a6e;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #17256b;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-row--muted {
+  color: #808695;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-def {
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-map-pins-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #515a6e;
+  margin: 14px 0 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-intro--tight {
+  margin-bottom: 6px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-pin-swatch {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-pin-swatch--on {
+  background: #2563eb;
+  border-color: #1d4ed8;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-pin-swatch--off {
+  background: #c23e01;
+  border-color: #a23401;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__map-pin-swatch--none {
+  background: #94a3b8;
+  border-color: #4b5563;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label {
+  font-weight: 700;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label--on {
+  color: #1d4ed8;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label--off {
+  color: #c23e01;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label--none {
+  color: #475569;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-bool {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: #eef2f6;
+  color: #334155;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill--inline {
+  padding: 2px 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill--on {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill--off {
+  background: #ffedd5;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__track-pill--none {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-device-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--fleet-title);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-count {
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #475569;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-scroll {
+  margin-top: 10px;
+  max-height: 190px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-shell--map-panel .tracker-settings-page__history-scroll {
+  max-height: min(220px, 32vh);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__alert-success {
+  margin-top: 8px;
+  background: #ecfdf5;
+  color: #166534;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-placeholder {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.45;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-strong {
+  color: var(--fleet-title);
+  font-weight: 600;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-muted {
+  color: var(--fleet-muted);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__alert-error {
+  background: var(--fleet-error-bg);
+  color: var(--fleet-error-fg);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 8px;
+  line-height: 1.35;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__alert-info {
+  background: #eff6ff;
+  color: #1e40af;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-top: 8px;
+  line-height: 1.35;
+}
+
+/* Route history lives in the map HUD panel (not the sidebar) */
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-shell--map-panel {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--fleet-panel-border, #f0f0f0);
+  background: transparent;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-shell--map-panel .tracker-settings-page__history-shell-head {
+  margin-bottom: 8px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-box--compact {
+  margin-top: 8px;
+  padding: 10px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-shell-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-shell-eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-box {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-row:last-child {
+  margin-bottom: 0;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-point {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.tracker-settings-page.tracker-ui .tracker-settings-page__history-point:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.tracker-settings-page.tracker-ui button.tracker-ui-press {
+  transition:
+    transform 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.tracker-settings-page.tracker-ui button.tracker-ui-press:active {
+  transform: scale(0.97);
+}
+
+/* Optional dark mode (add class `tracker-settings-page--dark` on root or `dark` on body) */
+body.dark .tracker-settings-page.tracker-ui,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark {
+  --fleet-panel-bg: #1e293b;
+  --fleet-panel-border: #334155;
+  --fleet-title: #e5e7eb;
+  --fleet-muted: #94a3b8;
+  --fleet-live-bg: rgba(22, 101, 52, 0.35);
+  --fleet-live-fg: #bbf7d0;
+  --fleet-delay-bg: rgba(133, 77, 14, 0.35);
+  --fleet-delay-fg: #fef08a;
+  --fleet-off-bg: #334155;
+  --fleet-off-fg: #cbd5e1;
+  --fleet-active-bg: rgba(14, 165, 233, 0.15);
+  --fleet-active-border: #727395;
+  --fleet-selected-ring: #60a5fa;
+  --fleet-selected-bg: rgba(30, 58, 138, 0.25);
+  --fleet-error-bg: rgba(127, 29, 29, 0.4);
+  --fleet-error-fg: #fecaca;
+  --st-sidebar: #0f172a;
+  --st-bg: #0f172a;
+  background: #0f172a !important;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-chip,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__topbar-chip {
+  background: #1e293b;
+  border-color: #334155;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-chip-label,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__topbar-chip-label {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-chip-value,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__topbar-chip-value {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__topbar-instructions-btn {
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.12) 0%, rgba(2, 132, 199, 0.18) 100%);
+  border-color: #253272;
+  color: #9aa4cc;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-instructions-btn:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__topbar-instructions-btn:hover {
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.22) 0%, rgba(2, 132, 199, 0.28) 100%);
+  border-color: #727395;
+  color: #e4e8f4;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-list,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-list {
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.9) 0%, transparent 52px),
+    #020617;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-list-toolbar,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-list-toolbar {
+  background: rgba(15, 23, 42, 0.88);
+  border-color: #334155;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-list-toolbar-title,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-list-toolbar-title {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-list-toolbar-count,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-list-toolbar-count {
+  background: rgba(14, 165, 233, 0.2);
+  border-color: #484d80;
+  color: #9aa4cc;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-card,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-card {
+  border-color: #334155;
+  background: #1e293b;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-card:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-card:hover {
+  border-color: #475569;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-card--active,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-card--active {
+  background: linear-gradient(180deg, rgba(12, 74, 110, 0.45) 0%, rgba(8, 47, 73, 0.55) 100%);
+  border-color: #253272;
+  box-shadow:
+    0 0 0 1px rgba(14, 165, 233, 0.25),
+    0 8px 22px rgba(0, 0, 0, 0.4);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-thumb {
+  border-color: #334155;
+  background: linear-gradient(155deg, #1e293b 0%, #0f172a 100%);
+  color: #94a3b8;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb--selected,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-thumb--selected {
+  border-color: #484d80;
+  background: linear-gradient(155deg, rgba(14, 165, 233, 0.35) 0%, rgba(2, 132, 199, 0.45) 100%);
+  color: #e4e8f4;
+  box-shadow:
+    0 0 0 1px rgba(14, 165, 233, 0.35),
+    0 4px 14px rgba(2, 132, 199, 0.25);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-thumb-signal,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-thumb-signal {
+  border-color: #1e293b;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item-plate,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item-plate {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item-sub,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item-sub {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item-device-id,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item-device-id {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item-device-id-value,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item-device-id-value {
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item-speed strong,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item-speed strong {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item-speed,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item-speed {
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-expand,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-expand {
+  border-left-color: #334155;
+  background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.85) 100%);
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-expand:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-expand:hover {
+  background: linear-gradient(180deg, #334155 0%, #1e293b 100%);
+  color: #e2e8f0;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-item:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-item:hover {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-card--active .tracker-settings-page__device-item:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-card--active .tracker-settings-page__device-item:hover {
+  background: rgba(15, 23, 42, 0.25);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__sidebar-empty-icon,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__sidebar-empty-icon {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__sidebar-empty-hint,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__sidebar-empty-hint {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-title,
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-intro,
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-row,
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-map-pins-title,
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-intro--tight,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-title,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-intro,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-row,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-map-pins-title,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-intro--tight {
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label--on,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-pin-label--on {
+  color: #93c5fd;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label--off,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-pin-label--off {
+  color: #fdba74;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend-pin-label--none,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend-pin-label--none {
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-lead,
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-p,
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-steps,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-instructions-lead,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-instructions-p,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-instructions-steps {
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-h,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-instructions-h {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-section,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-instructions-section {
+  border-top-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-instructions-note,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-instructions-note {
+  background: rgba(15, 23, 42, 0.6);
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-bool,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-bool {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-panel,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-panel {
+  border-color: #334155;
+  background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-panel--embedded,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-panel--embedded {
+  box-shadow: none;
+  border-color: #334155;
+  background: linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout {
+  border-top-color: #334155;
+  background: #0f172a;
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.35);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-header,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-header {
+  background: #1e293b;
+  border-bottom-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-title,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-title {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-subtitle,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-subtitle {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-device-id,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-device-id {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-device-id-value,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-device-id-value {
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-close,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-close {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-close:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-popout-close:hover {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-overlay,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-overlay {
+  background: rgba(2, 6, 23, 0.72);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal {
+  border-color: #334155;
+  background: #1e293b;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(148, 163, 184, 0.08) inset;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-header,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-header {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border-bottom-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-title,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-title {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-lead,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-lead {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-close,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-close {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-close:hover,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-close:hover {
+  background: #334155;
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal-body,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-validator-modal-body {
+  background: #0f172a;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__track-legend--modal,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__track-legend--modal {
+  background: #1e293b;
+  box-shadow: none;
+  border: 1px solid #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-stat {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat-label,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-stat-label {
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-stat-value,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-stat-value {
+  color: #f1f5f9;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-track {
+  border-color: #334155;
+  background: #1e293b;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track--on,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-track--on {
+  border-color: #166534;
+  background: linear-gradient(135deg, rgba(22, 101, 52, 0.35) 0%, #14532d 100%);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-track--off,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-track--off {
+  border-color: #9a3412;
+  background: linear-gradient(135deg, rgba(154, 52, 18, 0.3) 0%, #7c2d12 100%);
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-ingest,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-ingest {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-focus-btn,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-focus-btn {
+  border-color: #253272;
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.25) 0%, rgba(2, 132, 199, 0.45) 100%);
+  color: #c8cfe8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-mapstatus--ok,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-mapstatus--ok {
+  background: rgba(30, 58, 138, 0.45);
+  border-color: #484d80;
+  color: #bfdbfe;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-mapstatus--wait,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__device-detail-mapstatus--wait {
+  background: #1e293b;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__history-shell--map-panel,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__history-shell--map-panel {
+  border-top-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__history-shell-eyebrow,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__history-shell-eyebrow {
+  color: #64748b;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__history-count,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__history-count {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__history-box,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__history-box {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__history-placeholder,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__history-placeholder {
+  background: rgba(30, 58, 138, 0.35);
+  color: #bfdbfe;
+}
+
+body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__alert-success,
+.tracker-settings-page.tracker-ui.tracker-settings-page--dark .tracker-settings-page__alert-success {
+  background: rgba(6, 78, 59, 0.45);
+  color: #bbf7d0;
+}
+
+/* SinoTrack / iView-style fleet monitor (aligned with pro.sinotrack.com chrome) */
+.tracker-settings-page.sinotrack-layout {
+  --st-primary: #2d8cf0;
+  --st-primary-hover: #57a3f3;
+  --st-border: #e8eaec;
+  --st-bg: #f0f2f5;
+  --st-sidebar: #ffffff;
+  --st-text: #515a6e;
+  --st-title: #17256b;
+  --st-row-hover: #f8f8f9;
+  --st-row-active: #e6f7ff;
+  --st-row-active-border: #2d8cf0;
+}
+
+.sinotrack-layout__topbar {
+  position: relative;
+  z-index: 1080;
+  min-height: 2.75rem;
+  background: var(--st-sidebar);
+  border-bottom: 1px solid var(--st-border);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+
+@media (min-width: 768px) {
+  .sinotrack-layout__topbar {
+    min-height: 3rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.sinotrack-tab {
+  position: relative;
+  margin-bottom: -1px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--st-text);
+  cursor: default;
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+  transition: color 0.15s ease;
+}
+
+.sinotrack-tab--active {
+  color: var(--st-primary);
+  background: var(--st-sidebar);
+  border-color: var(--st-border);
+  border-bottom-color: var(--st-sidebar);
+  font-weight: 600;
+}
+
+.sinotrack-tab:not(.sinotrack-tab--active):hover {
+  color: var(--st-primary-hover);
+}
+
+.sinotrack-stat-inline {
+  font-size: 12px;
+  color: var(--st-text);
+}
+
+.sinotrack-stat-inline strong {
+  color: var(--st-title);
+  font-weight: 600;
+}
+
+.sinotrack-device-row {
+  border-bottom: 1px solid var(--st-border);
+  transition: background-color 0.12s ease;
+}
+
+.sinotrack-device-row:hover {
+  background: var(--st-row-hover);
+}
+
+.sinotrack-device-row--selected {
+  background: var(--st-row-active);
+  box-shadow: inset 3px 0 0 var(--st-row-active-border);
+}
+
+.sinotrack-history-panel {
+  border-top: 1px solid var(--st-border);
+  background: #fafafa;
+}
+
+.sinotrack-map-panel {
+  border: 1px solid var(--st-border);
+  background: rgba(255, 255, 255, 0.96);
+  border-radius: 2px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.tracker-settings-page [data-scroll-region='tracker-devices']::-webkit-scrollbar,
+.tracker-settings-page [data-scroll-region='tracker-history']::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tracker-settings-page [data-scroll-region='tracker-devices']::-webkit-scrollbar-thumb,
+.tracker-settings-page [data-scroll-region='tracker-history']::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+  background: rgba(45, 140, 240, 0.35);
+}
+
+.tracker-settings-page [data-scroll-region='tracker-devices']::-webkit-scrollbar-track,
+.tracker-settings-page [data-scroll-region='tracker-history']::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.04);
+}

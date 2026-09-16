@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  macOS: auto-start the SinoTrack → Vercel poller at login and keep it running.
+
+  1) Put SINOTRACK_APPJSON=1, SINOTRACK_APPJSON_SERVER, USER, PASSWORD, INGEST_URL
+     in REPO_ROOT/.env.local (already gitignored).
+
+  2) Copy this file and fix paths (search YOUR_USERNAME and REPO_PATH):
+     cp scripts/launchd/sinotrack-poller.plist.example \
+        ~/Library/LaunchAgents/com.github.c001.sinotrack-poller.plist
+
+  3) Edit the plist: replace YOUR_USERNAME with your macOS short name (whoami).
+     Replace REPO_PATH with your clone path (e.g. /Users/pb/Documents/GitHub/C001).
+
+  4) Load:
+     launchctl load ~/Library/LaunchAgents/com.github.c001.sinotrack-poller.plist
+
+  5) Unload / stop:
+     launchctl unload ~/Library/LaunchAgents/com.github.c001.sinotrack-poller.plist
+
+  Logs: ~/Library/Logs/C001-sinotrack-poller.out.log and .err.log
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.github.c001.sinotrack-poller</string>
+	<key>WorkingDirectory</key>
+	<string>REPO_PATH</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/bash</string>
+		<string>REPO_PATH/scripts/run-sinotrack-poller.sh</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>StandardOutPath</key>
+	<string>/Users/YOUR_USERNAME/Library/Logs/C001-sinotrack-poller.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>/Users/YOUR_USERNAME/Library/Logs/C001-sinotrack-poller.err.log</string>
+</dict>
+</plist>
