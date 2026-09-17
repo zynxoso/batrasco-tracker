@@ -277,7 +277,7 @@ export function ETADashboard({
         <div className="mb-5 flex min-w-0 flex-col gap-3 sm:gap-3 md:flex-row md:flex-wrap md:items-center md:gap-x-3 md:gap-y-3">
           <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 md:contents">
             <Link
-              to="/"
+              to="/tracker"
               className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-lg border border-white/35 bg-white/15 px-2.5 py-1.5 text-[11px] font-semibold text-white shadow-sm backdrop-blur-sm transition-colors hover:bg-white/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-blue-700 sm:px-3 sm:text-sm"
             >
               ← All stations

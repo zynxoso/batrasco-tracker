@@ -10,6 +10,7 @@ import { stations, type Station } from './data/route-stations';
 import { isDeviceOnTrack } from './lib/route/route-corridor';
 import { LiveRouteDashboardPage } from './pages/LiveRouteDashboardPage';
 import { TrackerSettingsPage } from './pages/TrackerSettingsPage';
+import { LandingPage } from './pages/LandingPage';
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import batrascoLogo from './assets/batrasco_logo.png';
 import { FleetMapLoginModal } from './components/auth/FleetMapLoginModal';
@@ -143,7 +144,7 @@ function AppRoutes({
     const { stationId } = useParams<{ stationId: string }>();
     const station = stations.find((s) => s.id === stationId);
     if (!station) {
-      return <Navigate to="/" replace />;
+      return <Navigate to="/tracker" replace />;
     }
     return (
       <LiveRouteDashboardPage
@@ -158,6 +159,21 @@ function AppRoutes({
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
+      <Route
+        path="/tracker"
+        element={
+          <div className={liveDashboardShellClass}>
+            {alerts}
+            <LiveRouteDashboardPage
+              stations={stations}
+              vehicles={dashboardVehicles}
+              selectedVehicle={selectedVehicle}
+              onVehicleSelect={setSelectedVehicle}
+            />
+          </div>
+        }
+      />
       <Route
         path="/tracker-settings"
         element={
@@ -180,22 +196,8 @@ function AppRoutes({
               </div>
             </div>
           ) : (
-            <Navigate to="/" replace state={{ openFleetLogin: true }} />
+            <Navigate to="/tracker" replace state={{ openFleetLogin: true }} />
           )
-        }
-      />
-      <Route
-        path="/"
-        element={
-          <div className={liveDashboardShellClass}>
-            {alerts}
-            <LiveRouteDashboardPage
-              stations={stations}
-              vehicles={dashboardVehicles}
-              selectedVehicle={selectedVehicle}
-              onVehicleSelect={setSelectedVehicle}
-            />
-          </div>
         }
       />
       <Route
@@ -557,65 +559,73 @@ export default function App() {
     return <CollaborationSplash />;
   }
 
-  return (
-    <div className="app-root flex min-h-dvh w-full min-w-0 max-w-full flex-1 flex-col bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(23,37,107,0.11),transparent),linear-gradient(165deg,#fafbfe_0%,#eef0f7_42%,#e4e8f2_100%)]">
-      <header className="shrink-0 border-b border-slate-200/70 bg-gradient-to-b from-slate-50/90 to-white/95 pt-[env(safe-area-inset-top,0px)] shadow-[0_12px_40px_-24px_rgba(15,23,42,0.18)] backdrop-blur-md supports-[backdrop-filter]:from-slate-50/75 supports-[backdrop-filter]:to-white/85">
-        <div
-          className="h-0.5 w-full bg-[linear-gradient(90deg,#253272_0%,#484d80_52%,#c23e01_100%)]"
-          aria-hidden
-        />
-        <div className="px-3 py-1.5 sm:px-5 sm:py-2 lg:px-8 lg:py-2.5">
-          <div className="relative flex w-full flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white pl-1 shadow-[0_4px_28px_-14px_rgba(23,37,107,0.14),inset_0_1px_0_0_rgba(255,255,255,0.97)] sm:rounded-2xl sm:pl-1.5 lg:flex-row lg:items-center">
-            <div
-              className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#17256b] via-[#484d80] to-[#c23e01] opacity-90"
-              aria-hidden
-            />
-            {/* Brand */}
-            <div className="flex min-w-0 items-center gap-3 border-b border-slate-200/70 py-2.5 pl-3 pr-2.5 sm:gap-3.5 sm:py-3 sm:pl-4 sm:pr-3 lg:flex-1 lg:border-b-0 lg:border-r lg:border-slate-200/70 lg:py-3 lg:pl-5">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-[inset_0_1px_2px_rgba(23,37,107,0.06)] ring-1 ring-slate-200/90 sm:h-[3.875rem] sm:w-[3.875rem] sm:p-1.5">
-                <img
-                  src={batrascoLogo}
-                  alt="Batrasco"
-                  width={128}
-                  height={128}
-                  className="h-full w-full object-contain object-center"
-                  decoding="async"
-                />
-              </div>
-              <div className="min-w-0 flex-1 pr-1">
-                <p className="text-[9px] font-bold uppercase leading-none tracking-[0.14em] text-[#c23e01]">
-                  Fleet operations
-                </p>
-                <h1 className="mt-1 text-balance text-[15px] font-bold leading-snug tracking-tight text-[#17256b] sm:text-lg lg:text-[1.125rem]">
-                  Batangas – Lipa Batrasco Tracker
-                </h1>
-                <p className="mt-0.5 text-[11px] leading-snug text-slate-500 sm:text-xs">
-                  Live GPS fleet and route status
-                </p>
-              </div>
-            </div>
+  const isLandingPage = location.pathname === '/';
 
-            {/* Nav + route: one row from sm; lg:contents lifts children into parent flex row */}
-            <div className="flex min-w-0 flex-col divide-y divide-slate-200/70 sm:flex-row sm:divide-x sm:divide-y-0 sm:divide-slate-200/70 lg:contents">
-              <div className="flex min-w-0 items-stretch px-2.5 py-2 sm:w-0 sm:flex-1 sm:items-center sm:px-3 sm:py-2.5 lg:w-auto lg:flex-none lg:border-r lg:border-slate-200/70 lg:px-4 lg:py-3">
-                <nav
-                  className="flex h-9 w-full min-w-0 gap-1 overflow-x-auto rounded-[10px] bg-slate-100/95 p-1 ring-1 ring-inset ring-slate-200/90 sm:h-10 lg:w-auto [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0"
-                  aria-label="Main sections"
-                >
-                  <NavLink
-                    to="/"
-                    end
-                    className={({ isActive }) =>
-                      `inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:min-h-10 sm:px-3 sm:text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c23e01]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                        isActive
-                          ? 'bg-[#253272] text-white shadow-md shadow-[#17256b]/25'
-                          : 'text-slate-600 hover:bg-white hover:text-[#253272] active:scale-[0.99]'
-                      }`
-                    }
+  return (
+    <div
+      className={
+        isLandingPage
+          ? 'app-root min-h-screen w-full min-w-0 max-w-full flex flex-col'
+          : 'app-root flex min-h-dvh w-full min-w-0 max-w-full flex-1 flex-col bg-[radial-gradient(ellipse_120%_80%_at_50%_-20%,rgba(23,37,107,0.11),transparent),linear-gradient(165deg,#fafbfe_0%,#eef0f7_42%,#e4e8f2_100%)]'
+      }
+    >
+      {!isLandingPage && (
+        <header className="shrink-0 border-b border-slate-200/70 bg-gradient-to-b from-slate-50/90 to-white/95 pt-[env(safe-area-inset-top,0px)] shadow-[0_12px_40px_-24px_rgba(15,23,42,0.18)] backdrop-blur-md supports-[backdrop-filter]:from-slate-50/75 supports-[backdrop-filter]:to-white/85">
+          <div
+            className="h-0.5 w-full bg-[linear-gradient(90deg,#253272_0%,#484d80_52%,#c23e01_100%)]"
+            aria-hidden
+          />
+          <div className="px-3 py-1.5 sm:px-5 sm:py-2 lg:px-8 lg:py-2.5">
+            <div className="relative flex w-full flex-col overflow-hidden rounded-xl border border-slate-200/80 bg-white pl-1 shadow-[0_4px_28px_-14px_rgba(23,37,107,0.14),inset_0_1px_0_0_rgba(255,255,255,0.97)] sm:rounded-2xl sm:pl-1.5 lg:flex-row lg:items-center">
+              <div
+                className="pointer-events-none absolute left-0 top-0 h-full w-1 bg-gradient-to-b from-[#17256b] via-[#484d80] to-[#c23e01] opacity-90"
+                aria-hidden
+              />
+              {/* Brand */}
+              <div className="flex min-w-0 items-center gap-3 border-b border-slate-200/70 py-2.5 pl-3 pr-2.5 sm:gap-3.5 sm:py-3 sm:pl-4 sm:pr-3 lg:flex-1 lg:border-b-0 lg:border-r lg:border-slate-200/70 lg:py-3 lg:pl-5">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white p-1 shadow-[inset_0_1px_2px_rgba(23,37,107,0.06)] ring-1 ring-slate-200/90 sm:h-[3.875rem] sm:w-[3.875rem] sm:p-1.5">
+                  <img
+                    src={batrascoLogo}
+                    alt="Batrasco"
+                    width={128}
+                    height={128}
+                    className="h-full w-full object-contain object-center"
+                    decoding="async"
+                  />
+                </div>
+                <div className="min-w-0 flex-1 pr-1">
+                  <p className="text-[9px] font-bold uppercase leading-none tracking-[0.14em] text-[#c23e01]">
+                    Fleet operations
+                  </p>
+                  <h1 className="mt-1 text-balance text-[15px] font-bold leading-snug tracking-tight text-[#17256b] sm:text-lg lg:text-[1.125rem]">
+                    Batangas – Lipa Batrasco Tracker
+                  </h1>
+                  <p className="mt-0.5 text-[11px] leading-snug text-slate-500 sm:text-xs">
+                    Live GPS fleet and route status
+                  </p>
+                </div>
+              </div>
+
+              {/* Nav + route: one row from sm; lg:contents lifts children into parent flex row */}
+              <div className="flex min-w-0 flex-col divide-y divide-slate-200/70 sm:flex-row sm:divide-x sm:divide-y-0 sm:divide-slate-200/70 lg:contents">
+                <div className="flex min-w-0 items-stretch px-2.5 py-2 sm:w-0 sm:flex-1 sm:items-center sm:px-3 sm:py-2.5 lg:w-auto lg:flex-none lg:border-r lg:border-slate-200/70 lg:px-4 lg:py-3">
+                  <nav
+                    className="flex h-9 w-full min-w-0 gap-1 overflow-x-auto rounded-[10px] bg-slate-100/95 p-1 ring-1 ring-inset ring-slate-200/90 sm:h-10 lg:w-auto [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0"
+                    aria-label="Main sections"
                   >
-                    <LayoutDashboard className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
-                    <span>Dashboard</span>
-                  </NavLink>
+                    <NavLink
+                      to="/tracker"
+                      className={({ isActive }) =>
+                        `inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:min-h-10 sm:px-3 sm:text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c23e01]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+                          isActive
+                            ? 'bg-[#253272] text-white shadow-md shadow-[#17256b]/25'
+                            : 'text-slate-600 hover:bg-white hover:text-[#253272] active:scale-[0.99]'
+                        }`
+                      }
+                    >
+                      <LayoutDashboard className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" aria-hidden />
+                      <span>Dashboard</span>
+                    </NavLink>
                   <NavLink
                     to="/tracker-settings"
                     onClick={(e) => {
@@ -691,6 +701,7 @@ export default function App() {
           </div>
         </div>
       </header>
+      )}
 
       <div className="flex min-h-0 min-w-0 w-full flex-1 flex-col">
         <AppRoutes
