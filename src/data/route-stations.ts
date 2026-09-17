@@ -33,18 +33,34 @@ export type Station = {
 
 type StationDefinition = Omit<Station, 'position'>;
 
-/** Order matters: first entry (Palico) is pinned to 0% (corridor start). The
- *  last entry (J.P. Laurel Hwy) is the easternmost passenger stop and
- *  projects to ~80% — the corridor itself runs a further ~5.7 km east to SM. */
+/** Order: Station 1 (Mataas na Kahoy Junction), Station 2 (San Jose Church), Station 3 (Batangas City, Puregold).
+ *  Batangas City is pinned to 0% (corridor start). The easternmost passenger stop
+ *  (Mataas na Kahoy Junction) projects to ~80% — the corridor runs a further ~5.7 km east to SM Lipa. */
 const stationDefinitions: StationDefinition[] = [
   {
     id: '1',
     stationNumber: 1,
-    name: 'Palico - Balayan',
+    name: 'Mataas na Kahoy Junction',
+    location: 'Lipa City',
+    latitude: 13.9394312,
+    longitude: 121.122812,
+  },
+  {
+    id: '2',
+    stationNumber: 2,
+    name: 'San Jose Church',
+    location: 'San Jose',
+    latitude: 13.8785677,
+    longitude: 121.1042709,
+  },
+  {
+    id: '3',
+    stationNumber: 3,
+    name: 'Batangas City, Puregold',
     location: 'Batangas City',
     latitude: 13.7641749,
     longitude: 121.0562022,
-    // Palico terminal parking yard (off Arturo Tanco Drive). Roughly
+    // Terminal parking yard (off Arturo Tanco Drive). Roughly
     // 180 m × 170 m around the stop pin. Tune the four numbers if the
     // on-map blue box doesn't match the parking area on the ground.
     geofence: {
@@ -54,14 +70,14 @@ const stationDefinitions: StationDefinition[] = [
       east: 121.05710,
     },
   },
-  { id: '2', stationNumber: 2, name: '26 Makalintal Avenue', location: 'San Jose', latitude: 13.8785677, longitude: 121.1042709 },
-  { id: '3', stationNumber: 3, name: 'J.P. Laurel Hwy', location: 'Lipa City', latitude: 13.9394312, longitude: 121.122812 },
 ];
 
-export const stations: Station[] = stationDefinitions.map((def, i) => {
-  // Pin only the first stop to 0% (Palico = start of corridor); everything
-  // else, including the last stop, uses its projected percent so JP Laurel
-  // lands at its true ~80% position with SM at 100% beyond it.
-  const position = i === 0 ? 0 : projectLatLngOntoRoute(def.latitude, def.longitude).positionPercent;
+export const stations: Station[] = stationDefinitions.map((def) => {
+  // Pin Batangas City (corridor start) to 0%; other stops use their projected percent along the route corridor.
+  const position =
+    def.location === 'Batangas City'
+      ? 0
+      : projectLatLngOntoRoute(def.latitude, def.longitude).positionPercent;
   return { ...def, position };
 });
+

@@ -65,9 +65,9 @@ export function latLngToPositionPercent(lat: number, lng: number): number {
 }
 
 /** ETA label when the bus is traveling toward Lipa (increasing %). */
-export const ETA_LABEL_TO_LIPA = 'J.P. Laurel Hwy';
+export const ETA_LABEL_TO_LIPA = 'Mataas na Kahoy Junction';
 /** ETA label when the bus is traveling toward Batangas (decreasing %). */
-export const ETA_LABEL_TO_BATANGAS = 'Palico–Balayan (Batangas)';
+export const ETA_LABEL_TO_BATANGAS = 'Batangas City, Puregold';
 
 /** @deprecated Use ETA_LABEL_TO_LIPA / ETA_LABEL_TO_BATANGAS (old geometry had 0=Lipa). */
 export const ETA_LABEL_SM_LIPA = ETA_LABEL_TO_LIPA;

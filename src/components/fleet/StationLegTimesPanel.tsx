@@ -65,7 +65,7 @@ export function StationLegTimesPanel({
           }
         >
           We record when a vehicle <strong>leaves</strong> a stop and <strong>arrives</strong> at the next one along its
-          direction (1→2→3 toward J.P. Laurel, 3→2→1 back toward Palico). Times are along the real corridor, not
+          direction (toward Mataas na Kahoy Junction or back toward Batangas City, Puregold). Times are along the real corridor, not
           straight-line.
         </p>
       ) : null}

@@ -72,8 +72,8 @@ function effectiveSpeedKmhForEta(speedKmh) {
 function latLngToPositionPercent(lat, lng) {
   return Math.round(projectLatLngOntoRoute(lat, lng).positionPercent * 1e3) / 1e3;
 }
-var ETA_LABEL_TO_LIPA = "J.P. Laurel Hwy";
-var ETA_LABEL_TO_BATANGAS = "Palico\u2013Balayan (Batangas)";
+var ETA_LABEL_TO_LIPA = "Mataas na Kahoy Junction";
+var ETA_LABEL_TO_BATANGAS = "Batangas City, Puregold";
 function computeEtaInDirectionOfTravel(positionPercent, speedKmh, headingTowardLipa) {
   const towardLipa = headingTowardLipa === true ? true : headingTowardLipa === false ? false : positionPercent < 50;
   const distanceKm2 = distanceKmToRouteTerminus(positionPercent, towardLipa);

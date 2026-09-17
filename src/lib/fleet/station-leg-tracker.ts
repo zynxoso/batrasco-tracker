@@ -238,5 +238,5 @@ export function formatLegDurationMinutesRounded(ms: number): string {
 }
 
 export function directionLabel(d: DirectionAlongRoute): string {
-  return d === 'to_lipa' ? 'Toward J.P. Laurel (east)' : 'Toward Palico (west)';
+  return d === 'to_lipa' ? 'Toward Mataas na Kahoy (east)' : 'Toward Batangas City (west)';
 }

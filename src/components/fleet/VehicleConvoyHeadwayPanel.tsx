@@ -185,7 +185,7 @@ export function VehicleConvoyHeadwayPanel({ vehicles, embedded = false }: Vehicl
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="min-w-0">
         <HeadwayTable
-          title="Going to J.P. Laurel (east)"
+          title="Going to Mataas na Kahoy Junction (east)"
           subtitle="1st row = first to reach the Lipa / SM end of the line; “time ahead” = to the bus in front, toward Lipa."
           rows={toLipaRows}
           sort={sortLipa}
@@ -194,8 +194,8 @@ export function VehicleConvoyHeadwayPanel({ vehicles, embedded = false }: Vehicl
       </div>
       <div className="min-w-0">
         <HeadwayTable
-          title="Going to Palico (west)"
-          subtitle="1st row = first to reach the Batangas / Palico end; “time ahead” = to the bus in front, toward Palico."
+          title="Going to Batangas City, Puregold (west)"
+          subtitle="1st row = first to reach the Batangas City end; “time ahead” = to the bus in front, toward Batangas."
           rows={toBatRows}
           sort={sortBat}
           onCycleSort={() => setSortBat(nextSort)}
