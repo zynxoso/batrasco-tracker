@@ -10,8 +10,10 @@ import { stations, type Station } from './data/route-stations';
 import { isDeviceOnTrack } from './lib/route/route-corridor';
 import { LiveRouteDashboardPage } from './pages/LiveRouteDashboardPage';
 import { TrackerSettingsPage } from './pages/TrackerSettingsPage';
-import { NavLink, Navigate, Route, Routes, useParams } from 'react-router-dom';
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import batrascoLogo from './assets/batrasco_logo.png';
+import { FleetMapLoginModal } from './components/auth/FleetMapLoginModal';
+import { isFleetAdminAuthorized } from './lib/auth/admin-auth';
 import {
   AlertCircle,
   Info,
@@ -159,23 +161,27 @@ function AppRoutes({
       <Route
         path="/tracker-settings"
         element={
-          <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {/* Float alerts so they do not consume vertical space and shrink the map */}
-            <div
-              className="pointer-events-none absolute inset-x-0 top-0 z-[1300] flex justify-center px-2 pt-2"
-              aria-live="polite"
-            >
-              <div className="pointer-events-auto max-h-[min(42vh,360px)] w-full max-w-3xl space-y-2 overflow-y-auto">
-                {alerts}
+          isFleetAdminAuthorized() ? (
+            <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+              {/* Float alerts so they do not consume vertical space and shrink the map */}
+              <div
+                className="pointer-events-none absolute inset-x-0 top-0 z-[1300] flex justify-center px-2 pt-2"
+                aria-live="polite"
+              >
+                <div className="pointer-events-auto max-h-[min(42vh,360px)] w-full max-w-3xl space-y-2 overflow-y-auto">
+                  {alerts}
+                </div>
+              </div>
+              <div className="relative min-h-0 min-w-0 flex-1">
+                <TrackerSettingsPage
+                  vehicles={vehicles}
+                  onIngestSettingsChanged={() => setIngestSettingsNonce((n) => n + 1)}
+                />
               </div>
             </div>
-            <div className="relative min-h-0 min-w-0 flex-1">
-              <TrackerSettingsPage
-                vehicles={vehicles}
-                onIngestSettingsChanged={() => setIngestSettingsNonce((n) => n + 1)}
-              />
-            </div>
-          </div>
+          ) : (
+            <Navigate to="/" replace state={{ openFleetLogin: true }} />
+          )
         }
       />
       <Route
@@ -206,11 +212,14 @@ function AppRoutes({
 }
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showSplash, setShowSplash] = useState(ENABLE_SPLASH);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [apiAvailable, setApiAvailable] = useState<boolean | null>(null);
   const [dataError, setDataError] = useState<string | null>(null);
   const [selectedVehicle, setSelectedVehicle] = useState<string | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const lastEtagRef = useRef<string | undefined>(undefined);
   const lastPositionByVehicleRef = useRef<Record<string, number>>({});
   /** Monotonic id so a slow poll cannot overwrite state after a newer poll has run. */
@@ -220,6 +229,14 @@ export default function App() {
   >(null);
   const [mockSimulatorNote, setMockSimulatorNote] = useState<string | null>(null);
   const [ingestSettingsNonce, setIngestSettingsNonce] = useState(0);
+
+  useEffect(() => {
+    if ((location.state as { openFleetLogin?: boolean })?.openFleetLogin) {
+      if (!isFleetAdminAuthorized()) {
+        setIsLoginModalOpen(true);
+      }
+    }
+  }, [location.state]);
 
   const runMockSimulator = async (script: 'quick' | 'realistic') => {
     setMockSimulatorBusy(script);
@@ -601,6 +618,12 @@ export default function App() {
                   </NavLink>
                   <NavLink
                     to="/tracker-settings"
+                    onClick={(e) => {
+                      if (!isFleetAdminAuthorized()) {
+                        e.preventDefault();
+                        setIsLoginModalOpen(true);
+                      }
+                    }}
                     className={({ isActive }) =>
                       `inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 text-[11px] font-semibold tracking-tight transition-all duration-200 sm:min-h-10 sm:px-3 sm:text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c23e01]/45 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                         isActive
@@ -679,6 +702,15 @@ export default function App() {
           dataError={dataError}
         />
       </div>
+
+      <FleetMapLoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => {
+          setIsLoginModalOpen(false);
+          navigate('/tracker-settings');
+        }}
+      />
     </div>
   );
 }
