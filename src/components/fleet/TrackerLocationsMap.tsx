@@ -88,6 +88,8 @@ function InvalidateMapSize() {
 
 function FitBounds({ points, disabled }: { points: [number, number][]; disabled?: boolean }) {
   const map = useMap();
+  const bounds = points.length ? L.latLngBounds(points) : null;
+  const south=bounds?.getSouth(), west=bounds?.getWest(), north=bounds?.getNorth(), east=bounds?.getEast();
   useEffect(() => {
     if (disabled) return;
     if (points.length === 0) return;
@@ -97,7 +99,7 @@ function FitBounds({ points, disabled }: { points: [number, number][]; disabled?
     }
     const bounds = L.latLngBounds(points.map(([lat, lng]) => L.latLng(lat, lng)));
     map.fitBounds(bounds, { padding: [48, 48], maxZoom: 15 });
-  }, [disabled, map, points]);
+  }, [disabled, map, south, west, north, east]);
   return null;
 }
 
@@ -121,9 +123,9 @@ function FocusVehicle({ point, focusNonce }: { point: [number, number] | null; f
         L.point(containerWidth * FOCUS_HORIZONTAL_OFFSET_FRACTION, 0)
       );
       const shiftedCenter = map.unproject(shifted, targetZoom);
-      map.flyTo(shiftedCenter, targetZoom, { duration: 0.45 });
+      map.setView(shiftedCenter, targetZoom, { animate: false });
     } else {
-      map.flyTo(point, targetZoom, { duration: 0.45 });
+      map.setView(point, targetZoom, { animate: false });
     }
   }, [focusNonce, map, point]);
   return null;

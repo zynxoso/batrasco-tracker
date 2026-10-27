@@ -9,7 +9,7 @@ for (let i = 1; i < BATRASCO_ROUTE_PATH.length; i++) {
   const b = BATRASCO_ROUTE_PATH[i];
   cumulative.push(cumulative[i - 1] + distanceKm(a[0], a[1], b[0], b[1]));
 }
-const corridorKm = cumulative[cumulative.length - 1];
+export const corridorKm = cumulative[cumulative.length - 1];
 export const demoStops = [...stations].sort((a, b) => a.position - b.position)
   .map(stop => ({ ...stop, km: stop.position / 100 * corridorKm }));
 export const demoRouteKm = demoStops[demoStops.length - 1].km;
@@ -47,11 +47,17 @@ const legs = [
 ].map(leg => ({ ...leg, seconds: Math.abs(demoStops[leg.to].km - demoStops[leg.from].km) / leg.speed * 3600 }));
 export const cycleSeconds = legs.reduce((sum, leg) => sum + leg.seconds + DWELL_SECONDS, 0);
 
-export function sampleBus(elapsedSeconds: number, bus = demoBuses[0]) {
-  let time = ((elapsedSeconds + bus.offset) % cycleSeconds + cycleSeconds) % cycleSeconds;
-  for (const leg of legs) {
-    const from = demoStops[leg.from];
-    const to = demoStops[leg.to];
+export function sampleBus(elapsedSeconds: number, bus = demoBuses[0], stops = demoStops) {
+  if (stops.length < 2) throw new Error('Add at least two distinct stations to this route');
+  const journey = stops === demoStops ? legs : [
+    ...stops.slice(1).map((_, i) => ({ from: i, to: i + 1, speed: i % 2 ? 42 : 34 })),
+    ...stops.slice(1).map((_, i) => ({ from: stops.length - 1 - i, to: stops.length - 2 - i, speed: i % 2 ? 32 : 38 })),
+  ].map(leg => ({ ...leg, seconds: Math.abs(stops[leg.to].km - stops[leg.from].km) / leg.speed * 3600 }));
+  const cycle = journey.reduce((sum, leg) => sum + leg.seconds + DWELL_SECONDS, 0);
+  let time = ((elapsedSeconds + bus.offset) % cycle + cycle) % cycle;
+  for (const leg of journey) {
+    const from = stops[leg.from];
+    const to = stops[leg.to];
     if (time < leg.seconds + DWELL_SECONDS) {
       const stopped = time >= leg.seconds;
       const fraction = Math.min(1, time / leg.seconds);

@@ -34,7 +34,8 @@ import { StationLegTimesPanel } from '../components/fleet/StationLegTimesPanel';
 import { VehicleConvoyHeadwayPanel } from '../components/fleet/VehicleConvoyHeadwayPanel';
 import { UiverseToggle } from '../components/ui/UiverseToggle';
 import { cn } from '../components/ui/utils';
-import { stations } from '../data/route-stations';
+import { stations as defaultStations, type Station } from '../data/route-stations';
+import { demoRuntime } from '../lib/fleet/demo-runtime';
 import { deviceTrackStatusLabel, getDeviceTrackStatus, isDeviceOnTrack } from '../lib/route/route-corridor';
 import {
   createLegTrackerMemory,
@@ -47,6 +48,8 @@ import './TrackerSettingsPage.css';
 
 type TrackerSettingsPageProps = {
   vehicles: Vehicle[];
+  demo?: boolean;
+  stations?: Station[];
   onIngestSettingsChanged?: () => void;
 };
 
@@ -293,6 +296,7 @@ function TrackValidatorHelpContent() {
 
 type TrackerDeviceDetailPanelProps = {
   vehicle: Vehicle;
+  demo?: boolean;
   embedded?: boolean;
   gpsVehicleIds: Set<string>;
   onOpenTrackValidatorHelp: () => void;
@@ -305,6 +309,7 @@ type TrackerDeviceDetailPanelProps = {
 
 function TrackerDeviceDetailPanel({
   vehicle,
+  demo=false,
   embedded,
   gpsVehicleIds,
   onOpenTrackValidatorHelp,
@@ -431,7 +436,7 @@ function TrackerDeviceDetailPanel({
             value={vehicle.scrapeIntervalMs && vehicle.scrapeIntervalMs >= 15_000 ? vehicle.scrapeIntervalMs : 15_000}
             onChange={(event) => onScrapeIntervalChange(vehicle.id, Number(event.target.value))}
             aria-label={`Set interval for ${vehicle.plateNumber}`}
-            title="Minimum 15s between SinoTrack scrapes for this device. The app still triggers the server poller every 5s while the tab is open; the map refreshes from server data at least 15s after each fleet update."
+            title={demo?'Simulated seconds between saved route points. Map motion stays smooth.':'Minimum time between scheduled GPS collections for this device.'}
           >
             <option value={15000}>15s</option>
             <option value={20_000}>20s</option>
@@ -462,7 +467,7 @@ function TrackerDeviceDetailPanel({
   );
 }
 
-export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: TrackerSettingsPageProps) {
+export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=false, stations=defaultStations }: TrackerSettingsPageProps) {
   const [ingestToggleBusyId, setIngestToggleBusyId] = useState<string | null>(null);
   const [intervalUpdateBusyId, setIntervalUpdateBusyId] = useState<string | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string | null>(null);
@@ -519,8 +524,9 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
       else setMasterError(result.error || 'Tracking setting unavailable');
     }
     void load(); const timer = setInterval(() => void load(), 15000);
-    return () => { active = false; clearInterval(timer); };
-  }, []);
+    const unsubscribe=demo?demoRuntime.subscribe(()=>setMasterPaused(!demoRuntime.state.playing)):()=>{};
+    return () => { active = false; clearInterval(timer);unsubscribe(); };
+  }, [demo]);
 
   const openTrackValidatorModal = useCallback(() => {
     setTrackValidatorModalOpen(true);
@@ -578,9 +584,10 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
 
   // Station→station travel time tracking (moved from Home into Tracker Settings).
   const legMemRef = useRef(createLegTrackerMemory());
-  const [stationLegRecords, setStationLegRecords] = useState<StationLegRecord[]>(() => loadStationLegRecords());
+  const [stationLegRecords, setStationLegRecords] = useState<StationLegRecord[]>(() => demo?demoRuntime.state.legs:loadStationLegRecords());
 
   useEffect(() => {
+    if(demo){setStationLegRecords(demoRuntime.state.legs);return;}
     const found: StationLegRecord[] = [];
     tickStationLegs(vehicles, stations, legMemRef.current, (r) => found.push(r));
     if (found.length > 0) {
@@ -590,7 +597,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
         return next;
       });
     }
-  }, [vehicles]);
+  }, [vehicles,demo,stations]);
 
   /** Map-selected device is shown at the top of the sidebar list; original order when nothing is selected. */
   const orderedVehicles = useMemo(() => {
@@ -692,7 +699,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
     }
 
     void loadHistory(selectedVehicleId);
-    const timer = setInterval(() => { if (!document.hidden) void loadHistory(selectedVehicleId); }, 15000);
+    const timer = setInterval(() => { if (!document.hidden) void loadHistory(selectedVehicleId); }, demo?1000:15000);
     return () => {
       clearInterval(timer);
       cancelled = true;
@@ -773,7 +780,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
           </div>
           <div className="min-w-0">
             <div className="truncate text-sm font-bold leading-tight text-[#17233d]">Batrasco · GPS tracking</div>
-            <div className="truncate text-[11px] text-[#808695]">Live monitor · OpenStreetMap</div>
+            <div className="truncate text-[11px] text-[#808695]">{demo?'Simulated monitor':'Live monitor'} · OpenStreetMap</div>
           </div>
         </div>
         <div className="tracker-settings-page__topbar-stats" aria-label="Fleet summary">
@@ -798,7 +805,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
           title={
             masterError
               ? `Last toggle finished with errors: ${masterError}`
-              : masterTrackingEnabled
+              : demo ? 'Pause or resume the local simulation. Per-device settings are preserved.' : masterTrackingEnabled
                 ? 'Pause scheduled GPS collection. Per-device settings are preserved.'
                 : 'Resume scheduled GPS collection using existing per-device settings.'
           }
@@ -863,7 +870,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
           className="tracker-settings-page__desktop-only tracker-settings-page__topbar-tabs ml-auto gap-0"
           aria-label="Primary workspace"
         >
-          <span className="sinotrack-tab sinotrack-tab--active px-4 py-2">Live monitor</span>
+          <span className="sinotrack-tab sinotrack-tab--active px-4 py-2">{demo?'Demo monitor':'Live monitor'}</span>
         </nav>
         <div className="tracker-settings-page__mobile-only--text min-w-0 flex-1 truncate text-center text-xs font-semibold text-[#515a6e]">
           GPS monitor
@@ -938,7 +945,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                         <button
                           type="button"
                           aria-pressed={selected}
-                          aria-label={`${vehicle.plateNumber}, device ID ${vehicle.id}. ${signalWord}. ${selectHint}.`}
+                          aria-label={`${vehicle.plateNumber}, device ID ${vehicle.deviceId ?? vehicle.id}. ${signalWord}. ${selectHint}.`}
                           onClick={() => handleSelectVehicle(selected ? null : vehicle.id)}
                           className="tracker-settings-page__device-item tracker-settings-page__device-item--grid tracker-ui-press text-left"
                         >
@@ -976,7 +983,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                                 className="tracker-settings-page__device-item-device-id"
                                 title="SinoTrack / tracker device identifier (IMEI)"
                               >
-                                Device ID <span className="tracker-settings-page__device-item-device-id-value">{vehicle.id}</span>
+                                Device ID <span className="tracker-settings-page__device-item-device-id-value">{vehicle.deviceId ?? vehicle.id}</span>
                               </div>
                             </div>
                             <div className="tracker-settings-page__device-item-badges">
@@ -1077,7 +1084,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                     title="SinoTrack / tracker device identifier (IMEI)"
                   >
                     Device ID{' '}
-                    <span className="tracker-settings-page__device-detail-popout-device-id-value">{expandedVehicle.id}</span>
+                    <span className="tracker-settings-page__device-detail-popout-device-id-value">{expandedVehicle.deviceId ?? expandedVehicle.id}</span>
                   </div>
                 </div>
                 <button
@@ -1091,6 +1098,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
               </div>
               <div className="tracker-settings-page__device-detail-popout-scroll" data-scroll-region="tracker-device-detail">
                 <TrackerDeviceDetailPanel
+                  demo={demo}
                   vehicle={expandedVehicle}
                   embedded
                   gpsVehicleIds={gpsVehicleIds}
@@ -1237,7 +1245,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
                       </div>
                       <div className="tracker-settings-page__history-row">
                         <span className="tracker-settings-page__history-muted">Source</span>
-                        <strong className="tracker-settings-page__history-strong">Stored route</strong>
+                        <strong className="tracker-settings-page__history-strong">{demo?'Simulated route':'Stored route'}</strong>
                       </div>
                     </div>
 
@@ -1365,7 +1373,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
               </button>
             </div>
             <div className="tracker-settings-page__track-validator-modal-body">
-              <StationLegTimesPanel records={stationLegRecords} compact={false} tone="light" showIntro={false} />
+              <StationLegTimesPanel records={stationLegRecords} compact={false} tone="light" showIntro={false} demo={demo} />
             </div>
           </div>
         </div>

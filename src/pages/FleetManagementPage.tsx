@@ -2,14 +2,16 @@ import { useCallback, useEffect, useState } from 'react';
 import { adminHeaders } from '../lib/auth/admin-auth';
 import { registry, type RegistryEntity, DEFAULT_ROUTE_ID } from '../lib/fleet/registry';
 import './fleet-management.css';
+import { demoRuntime, isDemoMode } from '../lib/fleet/demo-runtime';
 type Row = Record<string, any>;
 async function request(url: string, init?: RequestInit) {
+  if(isDemoMode())return demoRuntime.request(url,init);
   const response = await fetch(url, { ...init, headers: { 'Content-Type':'application/json', ...await adminHeaders() }, signal: AbortSignal.timeout(15000) });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Request failed');
   return data;
 }
-export function FleetManagementPage() {
+export function FleetManagementPage({demo=false}:{demo?:boolean}) {
   const [entity,setEntity] = useState<RegistryEntity>('vehicles');
   const [rows,setRows] = useState<Row[]>([]);
   const [total,setTotal] = useState(0); const [page,setPage] = useState(0);
@@ -57,7 +59,8 @@ export function FleetManagementPage() {
     <nav aria-label="Record types">{(Object.keys(registry) as RegistryEntity[]).map(key=><button key={key} aria-pressed={entity===key} disabled={busy||!!editing} onClick={()=>{setEntity(key);setPage(0);setSearch('');setNotice('');setArchived(false);}}>{registry[key].label}</button>)}</nav>
     <div className="fleet-filters"><label>Search {config.label.toLowerCase()}<input value={search} onChange={e=>{setSearch(e.target.value);setPage(0);}} /></label><label className="fleet-checkbox"><input type="checkbox" checked={archived} onChange={e=>{setArchived(e.target.checked);setPage(0);}}/>Show archived</label><button disabled={loading} onClick={()=>setRefresh(v=>v+1)}>Refresh</button></div>
     {error&&<p className="fleet-error" role="alert">{error}</p>}{notice&&<p className="fleet-notice" role="status">{notice}</p>}
-    {entity==='routes'&&<p className="fleet-hint">The public tracker currently follows BAT-LIP-001. Other routes can be registered; their map geometry and public views need separate setup.</p>}
+    {demo&&<p className="fleet-hint">Sample records saved in this browser. Active vehicles on the selected route appear in Dashboard and Fleet map. Demo routes use the Batangas–Lipa road corridor; add at least two stations along it.</p>}
+    {!demo&&entity==='routes'&&<p className="fleet-hint">The public tracker currently follows BAT-LIP-001. Other routes can be registered; their map geometry and public views need separate setup.</p>}
     {editing&&<section className="fleet-editor" aria-label="Record editor"><h2>{editing.id?'Edit':'Add'} {config.label.toLowerCase().replace(/s$/,'')}</h2><form onSubmit={save}>
       <div className="fleet-fields">{config.fields.map(field=><label key={field.key}>{field.label}{field.required?' *':''}
         {field.reference ? <select required={field.required} value={editing[field.key]??''} onChange={e=>setEditing({...editing,[field.key]:e.target.value})}><option value="">Unassigned</option>{references[field.reference].map(row=><option key={row.id} value={row.id}>{row.name}{row.code?` (${row.code})`:''}</option>)}</select>

@@ -8,6 +8,7 @@ type StationLegTimesPanelProps = {
   tone?: 'dark' | 'light';
   /** Hide the explanatory paragraph (useful in modals). */
   showIntro?: boolean;
+  demo?: boolean;
 };
 
 /**
@@ -19,6 +20,7 @@ export function StationLegTimesPanel({
   compact = false,
   tone = 'dark',
   showIntro = true,
+  demo = false,
 }: StationLegTimesPanelProps) {
   const recent = records.slice(0, compact ? 6 : 12);
   const dark = tone === 'dark';
@@ -55,7 +57,7 @@ export function StationLegTimesPanel({
           Station-to-station estimates (this browser)
         </h3>
         <p className={dark ? 'ml-auto text-[9px] font-medium text-white/60 sm:text-[10px]' : 'ml-auto text-[9px] font-medium text-slate-500 sm:text-[10px]'}>
-          From live GPS
+          {demo ? 'Simulated travel time' : 'From live GPS'}
         </p>
       </div>
       {showIntro ? (

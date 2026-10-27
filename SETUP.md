@@ -2,6 +2,8 @@
 
 Use the existing React/Vite + Vercel + Supabase project. No paid upgrade is required to run the local simulated demo. Do not deploy the new admin/API version before completing database setup.
 
+The existing screens now default to labeled demo mode for a fresh browser. Dashboard, Fleet map and Manage records use local sample data until the user chooses **Switch to live data**. See `DEMO.md` for controls and persistence. Live-mode database setup below is still required for real fleet operations.
+
 **Database setup — required**
 
 1. Export a backup of the existing database before applying schema/access changes.
@@ -26,7 +28,7 @@ Server: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. These existing values stay 
 
 `npm install`, then `npm run dev`. Vite serves the local API using the same handlers as Vercel; there is no need to proxy writes to production. The configured database is still the real configured project: use a separate test project for editing test records.
 
-- `/demo`: isolated browser simulation, visible simulated-GPS labels, no database writes.
+- `/demo`: redirects into demo mode on the existing `/tracker` dashboard; no separate demo page.
 - `/tracker`: public route information and sanitized vehicle snapshots.
 - `/manage`: administrator vehicle/driver/route/station records, search, pagination, archive and restore.
 - `/tracker-settings`: administrator map, history and collection settings.
@@ -42,7 +44,7 @@ Server: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. These existing values stay 
 - GPS timestamps older than five minutes, missing timestamps and implausibly future timestamps are not treated as fresh. No fresh ETA is promised for these records.
 - Passenger occupancy is unavailable rather than synthesized. Vehicle capacity is maintained separately.
 - The global toggle persists in Supabase and controls scheduled collection. Individual ingest settings remain unchanged when collection pauses.
-- Station-to-station estimates still come from observations in the current browser. They are labeled accordingly and are not a central trip-reporting system.
+- Station-to-station estimates still come from observations in the current browser. Demo mode uses simulated travel time and its own records; live mode uses the existing live observations. Neither is a central trip-reporting system.
 
 **Actual GPS — not activated by this release**
 

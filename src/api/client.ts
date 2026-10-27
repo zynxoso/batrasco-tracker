@@ -1,4 +1,5 @@
 import { adminHeaders } from '../lib/auth/admin-auth';
+import { demoRuntime, isDemoMode } from '../lib/fleet/demo-runtime';
 /**
  * API client for tracker/vehicle data (Sinotrack-style backend).
  * POST /api/trackers-poll is triggered every 5s from the dashboard; GET /api/vehicles
@@ -60,6 +61,7 @@ export type TriggerTrackersPollResult = {
  * fleet-wide parallel scrape at most every TRACKER_GLOBAL_POLL_INTERVAL_MS (see `_api/trackers-poll.ts`).
  */
 export async function triggerTrackersPoll(): Promise<TriggerTrackersPollResult> {
+  if(isDemoMode())return {ok:true,status:200,cronEnabled:demoRuntime.state.playing,polled:0};
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   Object.assign(headers, await adminHeaders());
   try {
@@ -102,12 +104,13 @@ export async function triggerTrackersPoll(): Promise<TriggerTrackersPollResult> 
 export type CronTrackingState = {
   ok: boolean;
   enabled: boolean;
-  source: 'kv' | 'default' | 'database';
+  source: 'kv' | 'default' | 'database' | 'demo';
   reason?: string;
   error?: string;
 };
 
 export async function fetchCronTrackingEnabled(): Promise<CronTrackingState> {
+  if(isDemoMode())return {ok:true,enabled:demoRuntime.state.playing,source:'demo'};
   try {
     const res = await fetch(CRON_TRACKING_TOGGLE_URL, { cache: 'no-store', headers: await adminHeaders() });
     const text = await res.text();
@@ -142,6 +145,7 @@ export async function fetchCronTrackingEnabled(): Promise<CronTrackingState> {
 }
 
 export async function setCronTrackingEnabled(enabled: boolean): Promise<CronTrackingState> {
+  if(isDemoMode()){demoRuntime.setPlaying(enabled);return {ok:true,enabled,source:'demo'};}
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   Object.assign(headers, await adminHeaders());
   try {
@@ -186,6 +190,7 @@ export async function setVehicleIngestEnabled(
   deviceId: string,
   enabled: boolean
 ): Promise<{ ok: boolean; error?: string }> {
+  if(isDemoMode()){try{demoRuntime.setUnit(deviceId,{enabled});return {ok:true};}catch(e){return {ok:false,error:(e as Error).message};}}
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   Object.assign(headers, await adminHeaders());
   const res = await fetch(INGEST_TOGGLE_URL, {
@@ -208,6 +213,7 @@ export async function setVehicleScrapeIntervalMs(
   deviceId: string,
   intervalMs: number
 ): Promise<{ ok: boolean; error?: string }> {
+  if(isDemoMode()){try{demoRuntime.setUnit(deviceId,{interval:intervalMs});return {ok:true};}catch(e){return {ok:false,error:(e as Error).message};}}
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   Object.assign(headers, await adminHeaders());
   const res = await fetch(SCRAPE_INTERVAL_URL, {
@@ -252,6 +258,7 @@ function parseFleetDataAtHeader(value: string | null): number | null {
 }
 
 export async function fetchVehicles(previousEtag?: string, signal?: AbortSignal, admin = false): Promise<FetchVehiclesResult> {
+  if(isDemoMode())return {data:demoRuntime.vehicles().map(v=>({...v,remainingDistancePercent:0,remainingDistanceKm:v.remainingDistanceKm??0,trackerOnline:v.trackerOnline??false,lastUpdated:v.lastUpdated??''})),etag:'',source:'demo'};
   const headers: Record<string,string> = admin ? await adminHeaders() : {};
   if (previousEtag) headers['If-None-Match'] = previousEtag;
   let res: Response;
@@ -317,6 +324,7 @@ export async function fetchTrackerHistory(
   message?: string;
   error?: string;
 }> {
+  if(isDemoMode())return {points:demoRuntime.history(deviceId,limit),configured:true};
   const url = `${TRACKER_HISTORY_URL}?device_id=${encodeURIComponent(deviceId)}&limit=${limit}`;
   let res: Response;
   try {

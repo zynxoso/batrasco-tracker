@@ -1,11 +1,13 @@
-# Bus route demo
+# Demo mode in the existing BATRASCO app
 
-Run `npm run dev` and open `/demo` on the local Vite address. After deploying the application, the same `/demo` path is available on that deployment.
+Run `npm run dev` and open `/tracker` or `/tracker-settings`. The existing application starts in labeled demo mode on a fresh browser. `/demo` is now a compatibility redirect to the existing dashboard; there is no separate demo page.
 
-This page uses simulated GPS, clearly labeled in the banner, map and bus details. It does not connect to SinoTrack or Supabase, start the main app's tracker polling, or write demo positions into the live fleet. External OpenStreetMap tiles need internet access; the route progress view and simulation work without those tiles.
+Dashboard, station pages, Fleet map, history, station timing, convoy spacing, tracking controls and Manage records share the same local simulation. No demo action calls the fleet API, authenticates to Supabase, or writes to the live database. External map tiles still need internet access.
 
-Three sample buses follow the existing route between Batangas City, San Jose and the last passenger stop in Lipa. They dwell for 45 simulation seconds at each stop and turn around at the termini. Their speeds differ by route leg. ETA is the remaining travel time to the next stop in simulation minutes and seconds, not a prediction for a real vehicle.
+Three starter vehicles run along the Batangas–Lipa corridor, stop for 45 simulation seconds and turn around. Vehicle edits, driver assignments, capacity, availability, archive and restore affect the existing screens. Added active vehicles on the selected route join the simulation. Routes and stations can be edited locally; a route needs at least two distinct stations along the existing corridor. This is not arbitrary-road route planning.
 
-Playback starts at 20×. Use 1× for real-time pacing or 60× for a quick walkthrough. Select a bus on the map, route strip or fleet list; pause, resume, restart or follow it on the map. Hidden tabs pause advancement. Sessions are local to each browser and are not synchronized between viewers.
+Playback starts at 20×, with 1× and 60× options. Pause/resume affects movement and the Fleet map master switch. Per-device tracking freezes that unit; report interval controls stored history samples. History retains up to 240 points per vehicle and 80 completed legs. Hidden tabs pause advancement. The selected route is the active demonstration scenario.
 
-Run `npm run test:demo` to check distance/ETA consistency, dwell time, turnarounds, circuit continuity and route bounds. This does not test production GPS or concurrent-user capacity.
+Records, settings, progress and history save in this browser's local storage; they are not shared between viewers. Restart trips preserves registry edits. Reset demo records asks before replacing local sample records and history. Neither touches production. Switch to live data explicitly to use the existing protected backend; live administrator permissions are still required.
+
+Run `npm test` for simulation travel/dwell/turnarounds, local CRUD persistence, route assignment, controls, history limits and no-network demo checks. These do not validate actual GPS or production concurrency.
