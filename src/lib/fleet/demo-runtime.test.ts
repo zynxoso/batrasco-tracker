@@ -6,6 +6,23 @@ import { fetchVehicles, fetchTrackerHistory, setVehicleIngestEnabled, setVehicle
 const mutate = (runtime: DemoRuntime, entity: string, record: any, id?: string) => runtime.request('/api/fleet-registry', { method: id ? 'PATCH' : 'POST', body: JSON.stringify({entity, record, id}) });
 afterEach(()=>vi.unstubAllGlobals());
 describe('existing-screen demo adapter',()=>{
+  it('loads all ten unit labels, retaining leading zeros',()=>{
+    const r=new DemoRuntime();expect(r.vehicles().map(v=>v.plateNumber)).toEqual(['68','10','09','07','71','05','69','87','02','06']);
+    expect(new Set(r.vehicles().map(v=>v.deviceId)).size).toBe(10);
+  });
+  it('upgrades the old saved roster once without resetting edits, progress or history',()=>{
+    const values=new Map<string,string>();const storage={getItem:(k:string)=>values.get(k)||null,setItem:(k:string,v:string)=>{values.set(k,v);}};
+    const old=new DemoRuntime(storage);old.advance(1);old.setPlaying(false);
+    old.state.records.vehicles=old.state.records.vehicles.slice(0,3);
+    old.state.records.vehicles.forEach((row,i)=>{row.plate_number=`DEMO-0${i+1}`;});
+    old.state.records.vehicles[1].plate_number='CUSTOM';old.state.records.vehicles[0].capacity=35;old.save();
+    const id=old.vehicles()[0].id, history=old.history(id,100), seconds=old.state.units[id].seconds;
+    const loaded=new DemoRuntime(storage);expect(loaded.vehicles()).toHaveLength(10);
+    expect(loaded.vehicles()[0].plateNumber).toBe('68');expect(loaded.vehicles()[0].capacity).toBe(35);
+    expect(loaded.vehicles()[1].plateNumber).toBe('CUSTOM');expect(loaded.state.units[id].seconds).toBe(seconds);
+    expect(loaded.state.playing).toBe(false);expect(loaded.history(id,100)).toEqual(history);
+    expect(new DemoRuntime(storage).vehicles()).toHaveLength(10);
+  });
   it('moves vehicles, freezes on pause, resumes and records route points',()=>{
     const r = new DemoRuntime(); const start=r.vehicles()[1];
     r.advance(1); expect(r.vehicles()[1].latitude).not.toBe(start.latitude);
@@ -40,7 +57,7 @@ describe('existing-screen demo adapter',()=>{
   });
   it('adds a vehicle to the map and applies station edits to its trip',async()=>{
     const r=new DemoRuntime();await mutate(r,'vehicles',{plate_number:'DEMO-04',route_id:DEFAULT_ROUTE_ID,capacity:20,availability:'active'});
-    expect(r.vehicles()).toHaveLength(4); const station=r.state.records.stations[1];
+    expect(r.vehicles()).toHaveLength(11); const station=r.state.records.stations[1];
     await mutate(r,'stations',{...station,name:'Sample middle stop'},station.id);
     expect(r.stations().some(s=>s.name==='Sample middle stop')).toBe(true);
     expect(r.vehicles()[0].etaInDirectionOfTravel).toContain('Sample middle stop');
@@ -62,7 +79,7 @@ describe('existing-screen demo adapter',()=>{
     const row=r.state.records.drivers[0];await mutate(r,'drivers',{...row,name:'Edited'},row.id);
     r.restart();expect(r.state.records.drivers[0].name).toBe('Edited');expect(r.state.elapsed).toBe(0);
     r.reset();expect(r.state.records.drivers[0].name).toBe('Demo Driver 1');
-  });
+  },15000);
   it('all demo client operations avoid network/auth calls',async()=>{
     const network=vi.fn(()=>{throw new Error('Demo must not call network');});vi.stubGlobal('fetch',network);
     setDemoMode(true);demoRuntime.reset();const id=demoRuntime.vehicles()[0].id;

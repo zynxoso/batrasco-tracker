@@ -16,6 +16,7 @@ type State = {
 const STORAGE_KEY = 'batrasco:demo-workspace:v1';
 const MODE_KEY = 'batrasco:workspace-mode';
 const idFor = (n: number) => `10000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const fleetUnits = ['68','10','09','07','71','05','69','87','02','06'];
 function seed(): State {
   const stamp = new Date().toISOString();
   return {
@@ -23,7 +24,7 @@ function seed(): State {
     records: {
       routes: [{ id: DEFAULT_ROUTE_ID, code: 'BAT-LIP-001', name: 'Batangas–San Jose–Lipa', origin: 'Batangas City', destination: 'Lipa City', updated_at: stamp }],
       drivers: demoBuses.map((_, i) => ({ id: idFor(10 + i), name: `Demo Driver ${i + 1}`, phone: null, updated_at: stamp })),
-      vehicles: demoBuses.map((bus, i) => ({ id: idFor(20 + i), plate_number: bus.id, device_id: `SIM-${i + 1}`, driver_id: idFor(10 + i), route_id: DEFAULT_ROUTE_ID, capacity: 20, availability: 'active', updated_at: stamp })),
+      vehicles: fleetUnits.map((unit, i) => ({ id: idFor(20 + i), plate_number: unit, device_id: `SIM-${i + 1}`, driver_id: i < demoBuses.length ? idFor(10 + i) : null, route_id: DEFAULT_ROUTE_ID, capacity: 20, availability: 'active', updated_at: stamp })),
       stations: initialStations.map((s, i) => ({ id: idFor(30 + i), name: s.name, location: s.location, station_number: s.stationNumber, latitude: s.latitude, longitude: s.longitude, route_id: DEFAULT_ROUTE_ID, updated_at: stamp })),
     }, units: {}, history: {}, legs: [],
   };
@@ -47,6 +48,17 @@ export class DemoRuntime {
             value.units && value.history && Array.isArray(value.legs)) this.state = value;
       }
     } catch { this.storageError = 'Saved demo data could not be read. Using starter records.'; }
+    // Upgrade only the old starter roster; retain edits, archived records and trip history.
+    const rows = this.state.records.vehicles;
+    const legacy = rows.filter(row => demoBuses.some((bus, i) => row.id === idFor(20 + i) && row.plate_number === bus.id && row.device_id === `SIM-${i + 1}`));
+    if (legacy.length) {
+      for (const row of legacy) {
+        const index = demoBuses.findIndex(bus => bus.id === row.plate_number);
+        if (!rows.some(other => other.plate_number === fleetUnits[index])) row.plate_number = fleetUnits[index];
+      }
+      for (const row of seed().records.vehicles.slice(3)) if (!rows.some(other => other.id === row.id || other.plate_number === row.plate_number || other.device_id === row.device_id)) rows.push(row);
+      this.save();
+    }
     this.syncUnits();
     this.recordPoints();
   }

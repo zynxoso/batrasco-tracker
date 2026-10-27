@@ -13,6 +13,15 @@ it('migration is repeatable; records persist; public and non-admin roles cannot 
     await db.exec(sql);await db.exec(sql);
     const routes=await db.query('select * from fleet_routes');expect(routes.rows).toHaveLength(1);
     expect((await db.query('select * from fleet_stations')).rows).toHaveLength(3);
+    const unitsSql=readFileSync('supabase/migrations/202610270002_fleet_units.sql','utf8');
+    await db.exec(unitsSql);
+    await db.query("update fleet_vehicles set capacity=35, device_id='existing-tracker', availability='maintenance' where plate_number='68'");
+    await db.exec(unitsSql);
+    expect((await db.query('select * from fleet_vehicles')).rows).toHaveLength(10);
+    expect((await db.query("select capacity,device_id,availability from fleet_vehicles where plate_number='68'")).rows[0]).toEqual({capacity:35,device_id:'existing-tracker',availability:'maintenance'});
+    expect((await db.query("select plate_number from fleet_vehicles where plate_number in ('09','07','05','02','06')")).rows).toHaveLength(5);
+    expect((await db.query('select * from tracker_latest')).rows).toHaveLength(0);
+    expect((await db.query('select * from tracker_reports')).rows).toHaveLength(0);
     const admin='11111111-1111-4111-8111-111111111111';
     await db.query('insert into auth.users(id) values($1)',[admin]);
     await db.query('insert into fleet_admins(user_id) values($1)',[admin]);

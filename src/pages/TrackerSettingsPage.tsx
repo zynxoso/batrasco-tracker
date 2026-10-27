@@ -754,14 +754,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=fa
   return (
     <div className="sinotrack-layout tracker-settings-page tracker-ui absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden bg-[#f0f2f5]">
       {masterError && <div role="alert" className="bg-red-50 px-4 py-3 text-sm text-red-800">{masterError}</div>}
-      {mobileSidebarOpen && (
-        <button
-          type="button"
-          className="tracker-settings-page__drawer-backdrop"
-          aria-label="Close device list"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
+
 
       <header className="sinotrack-layout__topbar tracker-settings-page__topbar flex shrink-0 flex-wrap items-center gap-2 px-3 py-1 md:gap-3 md:py-1.5">
         <button
@@ -878,6 +871,14 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=fa
       </header>
 
       <div className="tracker-settings-page__split">
+      {mobileSidebarOpen && (
+        <button
+          type="button"
+          className="tracker-settings-page__drawer-backdrop"
+          aria-label="Close device list"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
         <aside
           id="tracker-settings-sidebar"
           className="tracker-settings-page__sidebar min-h-0 border-[#e8eaec] bg-white"

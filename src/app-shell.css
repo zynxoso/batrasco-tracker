@@ -26,3 +26,6 @@ body {
   padding-right: env(safe-area-inset-right, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+
+.app-shell{width:100%;min-width:0;flex:1}.app-shell--map{flex:0 0 auto;height:100dvh;min-height:560px}.app-map-workspace{position:relative;flex:1;min-height:0;min-width:0}.app-nav>a,.app-nav>button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;text-align:center}.fleet-management,.fleet-table{min-width:0;max-width:100%}
+@media(max-width:600px){.app-nav{gap:6px}.app-nav>a:first-child{padding:4px 8px}.app-nav img{width:32px;height:32px}.app-nav .app-mode-badge{font-size:10px}.fleet-filters>label:not(.fleet-checkbox){flex:1 1 100%}.fleet-fields{grid-template-columns:minmax(0,1fr)}.fleet-editor{padding:12px}}

@@ -113,7 +113,7 @@ export default function App() {
   const freshVehicles=demo?vehicles:vehicles.map(v=>{const fresh=v.trackerOnline!==false&&isGpsFresh(v.lastUpdated,now);return {...v,trackerOnline:fresh,status:fresh&&v.status!=='offline'?'online' as const:'offline' as const,speed:fresh?v.speed:0,etaInDirectionOfTravel:fresh?v.etaInDirectionOfTravel:'Unavailable'};});
   const publicVehicles=freshVehicles.filter(v=>v.ingestEnabled!==false&&isDeviceOnTrack(v.latitude,v.longitude)===true);
   const protectedPage=(content:React.ReactNode)=>demo?content:!authReady?<p className="app-loading">Checking session…</p>:admin?content:<div className="app-loading"><h1>Administrator sign-in required</h1><p>Use your fleet administrator email account.</p><button onClick={()=>setLogin(true)}>Sign in</button></div>;
-  return <div className="min-h-screen flex flex-col bg-slate-50">
+  return <div className={`app-shell min-h-screen flex flex-col bg-slate-50${location.pathname==='/tracker-settings'?' app-shell--map':''}`}>
     <nav className="app-nav" aria-label="Main sections"><Link to="/"><img src={batrascoLogo} alt="BATRASCO"/></Link><NavLink to="/tracker">Dashboard</NavLink><NavLink to="/tracker-settings">Fleet map</NavLink><NavLink to="/manage">Manage records</NavLink>{admin?<button onClick={async()=>{await supabaseBrowser?.auth.signOut();setAdmin(false);setVehicles([]);}}>Sign out</button>:<button onClick={()=>setLogin(true)}>Admin sign in</button>}{demo&&<span className="app-mode-badge" title="Positions are generated locally, not received from GPS devices.">Simulated locations</span>}</nav>
     {wantsData&&error&&<div className="app-alert" role="alert">{error}</div>}
     {wantsData&&loading&&<p className="app-loading" role="status">Loading vehicle data…</p>}
@@ -123,7 +123,7 @@ export default function App() {
       <Route path="/" element={<LandingPage/>}/>
       <Route path="/tracker" element={<div className="live-route-dashboard-shell p-4"><LiveRouteDashboardPage stations={stations} vehicles={publicVehicles} selectedVehicle={selected} onVehicleSelect={setSelected}/></div>}/>
       <Route path="/station/:stationId" element={<div className="live-route-dashboard-shell p-4"><StationView stations={stations} vehicles={publicVehicles} selected={selected} onSelect={setSelected}/></div>}/>
-      <Route path="/tracker-settings" element={protectedPage(<div className="relative flex-1 min-h-[75vh]" style={{minHeight:'max(700px, 80vh)'}}><TrackerSettingsPage key={`${demo}-${demoRuntime.state.route}-${refresh}`} demo={demo} stations={stations} vehicles={freshVehicles} onIngestSettingsChanged={()=>{if(!demo)setRefresh(v=>v+1);}}/></div>)}/>
+      <Route path="/tracker-settings" element={protectedPage(<div className="app-map-workspace"><TrackerSettingsPage key={`${demo}-${demoRuntime.state.route}-${refresh}`} demo={demo} stations={stations} vehicles={freshVehicles} onIngestSettingsChanged={()=>{if(!demo)setRefresh(v=>v+1);}}/></div>)}/>
       <Route path="/manage" element={protectedPage(<FleetManagementPage key={`${demo}-${refresh}`} demo={demo}/>)}/>
       <Route path="*" element={<Navigate to="/" replace/>}/>
     </Routes></Suspense>
