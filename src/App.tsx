@@ -9,7 +9,7 @@ import { LandingPage } from './pages/LandingPage';
 import { FleetMapLoginModal } from './components/auth/FleetMapLoginModal';
 import { isFleetAdminAuthorized } from './lib/auth/admin-auth';
 import { supabaseBrowser } from './lib/auth/supabase-browser';
-import { demoRuntime, isDemoMode, setDemoMode } from './lib/fleet/demo-runtime';
+import { demoRuntime, isDemoMode } from './lib/fleet/demo-runtime';
 import batrascoLogo from './assets/batrasco_logo.png';
 import './pages/fleet-management.css';
 const TrackerSettingsPage = lazy(()=>import('./pages/TrackerSettingsPage').then(m=>({default:m.TrackerSettingsPage})));
@@ -56,9 +56,8 @@ function StationView({ stations, vehicles, selected, onSelect }: {stations:Stati
 }
 export default function App() {
   const location=useLocation();
-  const [demo,setDemo]=useState(isDemoMode);
+  const [demo]=useState(isDemoMode);
   const [,setDemoRevision]=useState(0);
-  const [resetPrompt,setResetPrompt]=useState(false);
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
   const [stations,setStations]=useState(defaultStations);
   const [selected,setSelected]=useState<string|null>(null);
@@ -114,23 +113,11 @@ export default function App() {
   const freshVehicles=demo?vehicles:vehicles.map(v=>{const fresh=v.trackerOnline!==false&&isGpsFresh(v.lastUpdated,now);return {...v,trackerOnline:fresh,status:fresh&&v.status!=='offline'?'online' as const:'offline' as const,speed:fresh?v.speed:0,etaInDirectionOfTravel:fresh?v.etaInDirectionOfTravel:'Unavailable'};});
   const publicVehicles=freshVehicles.filter(v=>v.ingestEnabled!==false&&isDeviceOnTrack(v.latitude,v.longitude)===true);
   const protectedPage=(content:React.ReactNode)=>demo?content:!authReady?<p className="app-loading">Checking session…</p>:admin?content:<div className="app-loading"><h1>Administrator sign-in required</h1><p>Use your fleet administrator email account.</p><button onClick={()=>setLogin(true)}>Sign in</button></div>;
-  function changeMode(enabled:boolean){setDemoMode(enabled);setVehicles([]);setStations(defaultStations);setError('');setAdmin(false);setAuthReady(enabled);setLogin(false);setDemo(enabled);setRefresh(v=>v+1);}
   return <div className="min-h-screen flex flex-col bg-slate-50">
-    <nav className="app-nav" aria-label="Main sections"><Link to="/"><img src={batrascoLogo} alt="BATRASCO"/></Link><NavLink to="/tracker">Dashboard</NavLink><NavLink to="/tracker-settings">Fleet map</NavLink><NavLink to="/manage">Manage records</NavLink>{demo?<span className="app-mode-badge">Demo operator</span>:admin?<button onClick={async()=>{await supabaseBrowser?.auth.signOut();setAdmin(false);setVehicles([]);}}>Sign out</button>:<button onClick={()=>setLogin(true)}>Admin sign in</button>}<button onClick={()=>changeMode(!demo)}>{demo?'Switch to live data':'Use demo data'}</button></nav>
-    {demo&&<section className="app-demo-controls" aria-label="Demo controls">
-      <div><strong>DEMO MODE · SIMULATED GPS</strong><p>Sample fleet · changes saved in this browser · speed and ETA use simulation time.</p></div>
-      <button onClick={()=>demoRuntime.setPlaying(!demoRuntime.state.playing)}>{demoRuntime.state.playing?'Pause demo':'Resume demo'}</button>
-      <label>Playback<select value={demoRuntime.state.rate} onChange={e=>demoRuntime.setRate(Number(e.target.value))}><option value={1}>1× real time</option><option value={20}>20× faster</option><option value={60}>60× faster</option></select></label>
-      <label>Route<select value={demoRuntime.state.route} onChange={e=>{setSelected(null);demoRuntime.setRoute(e.target.value);}}>{demoRuntime.state.records.routes.filter(r=>!r.archived_at).map(r=><option key={r.id} value={r.id}>{r.code}</option>)}</select></label>
-      <span data-testid="simulation-clock">Demo time {Math.floor(demoRuntime.state.elapsed/60)}:{String(Math.floor(demoRuntime.state.elapsed%60)).padStart(2,'0')}</span>
-      <button onClick={()=>demoRuntime.restart()}>Restart trips</button><button onClick={()=>setResetPrompt(true)}>Reset demo records</button>
-      {resetPrompt&&<div role="alertdialog" aria-label="Reset demo records"><p>Replace this browser’s demo edits and history with the starter records?</p><button onClick={()=>{demoRuntime.reset();setResetPrompt(false);setRefresh(v=>v+1);}}>Reset sample data</button><button onClick={()=>setResetPrompt(false)}>Cancel</button></div>}
-      {demoRuntime.storageError&&<p role="alert">{demoRuntime.storageError}</p>}
-      {stations.length<2&&<p>Add at least two stations on the Batangas–Lipa corridor for this route to run.</p>}
-    </section>}
-    {wantsData&&error&&<div className="app-alert" role="alert">{error} <Link to="/demo">Open simulated demo</Link></div>}
+    <nav className="app-nav" aria-label="Main sections"><Link to="/"><img src={batrascoLogo} alt="BATRASCO"/></Link><NavLink to="/tracker">Dashboard</NavLink><NavLink to="/tracker-settings">Fleet map</NavLink><NavLink to="/manage">Manage records</NavLink>{admin?<button onClick={async()=>{await supabaseBrowser?.auth.signOut();setAdmin(false);setVehicles([]);}}>Sign out</button>:<button onClick={()=>setLogin(true)}>Admin sign in</button>}{demo&&<span className="app-mode-badge" title="Positions are generated locally, not received from GPS devices.">Simulated locations</span>}</nav>
+    {wantsData&&error&&<div className="app-alert" role="alert">{error}</div>}
     {wantsData&&loading&&<p className="app-loading" role="status">Loading vehicle data…</p>}
-    {wantsData&&!loading&&!error&&!freshVehicles.some(v=>v.trackerOnline)&&<div className="app-alert">{demo?'No active demo vehicles on this route. Check availability and tracking in Manage records and Fleet map.':'No recent GPS reports. Live arrivals are unavailable.'}</div>}
+    {wantsData&&!loading&&!error&&!freshVehicles.some(v=>v.trackerOnline)&&<div className="app-alert">No vehicles are reporting on this route right now.</div>}
     <FleetMapLoginModal isOpen={login} onClose={()=>setLogin(false)} onSuccess={()=>{setLogin(false);setAdmin(true);setAuthReady(true);setRefresh(v=>v+1);}}/>
     <Suspense fallback={<p className="app-loading">Loading…</p>}><Routes>
       <Route path="/" element={<LandingPage/>}/>
@@ -138,9 +125,7 @@ export default function App() {
       <Route path="/station/:stationId" element={<div className="live-route-dashboard-shell p-4"><StationView stations={stations} vehicles={publicVehicles} selected={selected} onSelect={setSelected}/></div>}/>
       <Route path="/tracker-settings" element={protectedPage(<div className="relative flex-1 min-h-[75vh]" style={{minHeight:'max(700px, 80vh)'}}><TrackerSettingsPage key={`${demo}-${demoRuntime.state.route}-${refresh}`} demo={demo} stations={stations} vehicles={freshVehicles} onIngestSettingsChanged={()=>{if(!demo)setRefresh(v=>v+1);}}/></div>)}/>
       <Route path="/manage" element={protectedPage(<FleetManagementPage key={`${demo}-${refresh}`} demo={demo}/>)}/>
-      <Route path="/demo/*" element={<DemoEntry onEnter={()=>changeMode(true)}/>}/>
       <Route path="*" element={<Navigate to="/" replace/>}/>
     </Routes></Suspense>
   </div>;
 }
-function DemoEntry({onEnter}:{onEnter:()=>void}){useEffect(()=>{onEnter();},[]);return <Navigate to="/tracker" replace/>;}

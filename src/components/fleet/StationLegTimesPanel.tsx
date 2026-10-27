@@ -57,7 +57,7 @@ export function StationLegTimesPanel({
           Station-to-station estimates (this browser)
         </h3>
         <p className={dark ? 'ml-auto text-[9px] font-medium text-white/60 sm:text-[10px]' : 'ml-auto text-[9px] font-medium text-slate-500 sm:text-[10px]'}>
-          {demo ? 'Simulated travel time' : 'From live GPS'}
+          Travel time estimates
         </p>
       </div>
       {showIntro ? (

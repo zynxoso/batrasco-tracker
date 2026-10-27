@@ -436,7 +436,7 @@ function TrackerDeviceDetailPanel({
             value={vehicle.scrapeIntervalMs && vehicle.scrapeIntervalMs >= 15_000 ? vehicle.scrapeIntervalMs : 15_000}
             onChange={(event) => onScrapeIntervalChange(vehicle.id, Number(event.target.value))}
             aria-label={`Set interval for ${vehicle.plateNumber}`}
-            title={demo?'Simulated seconds between saved route points. Map motion stays smooth.':'Minimum time between scheduled GPS collections for this device.'}
+            title="Time between saved location reports for this vehicle."
           >
             <option value={15000}>15s</option>
             <option value={20_000}>20s</option>
@@ -780,7 +780,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=fa
           </div>
           <div className="min-w-0">
             <div className="truncate text-sm font-bold leading-tight text-[#17233d]">Batrasco · GPS tracking</div>
-            <div className="truncate text-[11px] text-[#808695]">{demo?'Simulated monitor':'Live monitor'} · OpenStreetMap</div>
+            <div className="truncate text-[11px] text-[#808695]">Fleet monitor · OpenStreetMap</div>
           </div>
         </div>
         <div className="tracker-settings-page__topbar-stats" aria-label="Fleet summary">
@@ -805,9 +805,9 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=fa
           title={
             masterError
               ? `Last toggle finished with errors: ${masterError}`
-              : demo ? 'Pause or resume the local simulation. Per-device settings are preserved.' : masterTrackingEnabled
-                ? 'Pause scheduled GPS collection. Per-device settings are preserved.'
-                : 'Resume scheduled GPS collection using existing per-device settings.'
+              : masterTrackingEnabled
+                ? 'Pause location updates. Per-device settings are preserved.'
+                : 'Resume location updates using existing per-device settings.'
           }
           className={cn(
             'tracker-ui-press inline-flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors',
@@ -870,7 +870,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=fa
           className="tracker-settings-page__desktop-only tracker-settings-page__topbar-tabs ml-auto gap-0"
           aria-label="Primary workspace"
         >
-          <span className="sinotrack-tab sinotrack-tab--active px-4 py-2">{demo?'Demo monitor':'Live monitor'}</span>
+          <span className="sinotrack-tab sinotrack-tab--active px-4 py-2">Fleet monitor</span>
         </nav>
         <div className="tracker-settings-page__mobile-only--text min-w-0 flex-1 truncate text-center text-xs font-semibold text-[#515a6e]">
           GPS monitor
@@ -1245,7 +1245,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged, demo=fa
                       </div>
                       <div className="tracker-settings-page__history-row">
                         <span className="tracker-settings-page__history-muted">Source</span>
-                        <strong className="tracker-settings-page__history-strong">{demo?'Simulated route':'Stored route'}</strong>
+                        <strong className="tracker-settings-page__history-strong">Route history</strong>
                       </div>
                     </div>
 

@@ -2,7 +2,7 @@
 
 Use the existing React/Vite + Vercel + Supabase project. No paid upgrade is required to run the local simulated demo. Do not deploy the new admin/API version before completing database setup.
 
-The existing screens now default to labeled demo mode for a fresh browser. Dashboard, Fleet map and Manage records use local sample data until the user chooses **Switch to live data**. See `DEMO.md` for controls and persistence. Live-mode database setup below is still required for real fleet operations.
+The existing screens default to the simulation feed for a fresh browser, identified by a compact **Simulated locations** label. The large demo toolbar and visible mode switch have been removed; the saved mode preference still selects the data pipeline. See `DEMO.md` for controls and persistence. Live-mode database setup below is still required for real fleet operations.
 
 **Database setup — required**
 
@@ -28,7 +28,7 @@ Server: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`. These existing values stay 
 
 `npm install`, then `npm run dev`. Vite serves the local API using the same handlers as Vercel; there is no need to proxy writes to production. The configured database is still the real configured project: use a separate test project for editing test records.
 
-- `/demo`: redirects into demo mode on the existing `/tracker` dashboard; no separate demo page.
+- `/demo`: no dedicated route; falls through to `/` without changing the saved mode.
 - `/tracker`: public route information and sanitized vehicle snapshots.
 - `/manage`: administrator vehicle/driver/route/station records, search, pagination, archive and restore.
 - `/tracker-settings`: administrator map, history and collection settings.
