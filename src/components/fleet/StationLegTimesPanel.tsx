@@ -52,7 +52,7 @@ export function StationLegTimesPanel({
               : `min-w-0 text-sm font-bold leading-tight ${dark ? 'text-white' : 'text-slate-900'} sm:text-base`
           }
         >
-          Station-to-station travel times
+          Station-to-station estimates (this browser)
         </h3>
         <p className={dark ? 'ml-auto text-[9px] font-medium text-white/60 sm:text-[10px]' : 'ml-auto text-[9px] font-medium text-slate-500 sm:text-[10px]'}>
           From live GPS

@@ -1,3 +1,5 @@
+import { requireIngest } from '../src/lib/server/access';
+import { nodeHandler } from '../src/lib/server/http-handler';
 /**
  * Sinotrack input processing.
  * POST /api/ingest – receives tracker reports from Sinotrack (or gateway)
@@ -12,7 +14,7 @@ import { persistTrackerReport } from '../src/lib/server/tracker-db';
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 export async function OPTIONS() {
@@ -37,6 +39,7 @@ function describeError(e: unknown): string {
 }
 
 export async function POST(request: Request) {
+  const denied = requireIngest(request); if (denied) return denied;
   if (request.headers.get('content-type')?.includes('application/json') === false) {
     return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
       status: 400,
@@ -89,6 +92,7 @@ export async function POST(request: Request) {
       : null;
   const reports = Array.isArray(body.reports) ? body.reports : single ? [single] : [];
 
+  if (reports.length > 100) return new Response('Batch limit is 100', { status: 413 });
   const normalized = reports
     .map((r) => normalizeSinotrackReport(r as Parameters<typeof normalizeSinotrackReport>[0]))
     .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -116,3 +120,5 @@ export async function POST(request: Request) {
     headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
   });
 }
+
+export default nodeHandler({OPTIONS, POST});

@@ -1,3 +1,5 @@
+import { requireAdmin } from '../src/lib/server/access';
+import { nodeHandler } from '../src/lib/server/http-handler';
 /**
  * GET   /api/cron-tracking-toggle  → { ok, enabled, source, reason? }
  * PATCH /api/cron-tracking-toggle  → body: { enabled: boolean } → same shape
@@ -12,7 +14,7 @@ import { getCronTrackingEnabled, setCronTrackingEnabled } from '../src/lib/serve
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, PATCH, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, X-Vehicle-Ingest-Toggle-Secret',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -26,16 +28,14 @@ export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const denied = await requireAdmin(request); if (denied) return denied;
   const state = await getCronTrackingEnabled();
   return jsonResponse(200, { ok: true, ...state });
 }
 
 export async function PATCH(request: Request) {
-  const secret = process.env.VEHICLE_INGEST_TOGGLE_SECRET;
-  if (secret && request.headers.get('x-vehicle-ingest-toggle-secret') !== secret) {
-    return jsonResponse(403, { ok: false, error: 'Forbidden' });
-  }
+  const denied = await requireAdmin(request); if (denied) return denied;
 
   let body: { enabled?: unknown };
   try {
@@ -58,3 +58,5 @@ export async function PATCH(request: Request) {
     });
   }
 }
+
+export default nodeHandler({OPTIONS, GET, PATCH});

@@ -24,7 +24,38 @@ export default defineConfig(({ mode }) => {
         '';
 
     return {
-        plugins: [tailwindcss(), react()],
+        plugins: [tailwindcss(), react(), {
+            name: 'local-api',
+            configureServer(server) {
+                // Backend modules run only in Node; never expose service credentials to the browser.
+                for (const [key, value] of Object.entries(env)) {
+                    if (!key.startsWith('VITE_') && process.env[key] == null) process.env[key] = value;
+                }
+                if (process.env.VITE_API_PROXY_ORIGIN) return;
+                server.middlewares.use(async (req, res, next) => {
+                    const pathname = new URL(req.url || '/', 'http://localhost').pathname;
+                    const match = pathname.match(/^\/api\/([a-z-]+)$/);
+                    if (!match) return next();
+                    const allowed = ['vehicles','network','fleet-registry','vehicle-ingest-toggle','vehicle-scrape-interval','cron-tracking-toggle','tracker-history','trackers-poll','ingest','device','tracker','ping'];
+                    if (!allowed.includes(match[1])) { res.statusCode = 404; return res.end('Not found'); }
+                    try {
+                        const chunks: Buffer[] = []; let bytes = 0;
+                        for await (const chunk of req) {
+                            bytes += Buffer.byteLength(chunk);
+                            if (bytes > 65536) { res.statusCode=413; return res.end('Request too large'); }
+                            chunks.push(Buffer.from(chunk));
+                        }
+                        (req as any).body = Buffer.concat(chunks).toString() || undefined;
+                        const mod = await server.ssrLoadModule(`/_api/${match[1]}.ts`);
+                        if (typeof mod.default === 'function') return await mod.default(req, res);
+                        const fn=mod[req.method || 'GET'];
+                        if(!fn){res.statusCode=405;return res.end('Method not allowed');}
+                        const response=await fn(new Request(`http://localhost${req.url}`));
+                        res.statusCode=response.status;response.headers.forEach((v:string,k:string)=>res.setHeader(k,v));res.end(await response.text());
+                    } catch { res.statusCode=500;res.setHeader('Content-Type','application/json');res.end(JSON.stringify({error:'Local API request failed'})); }
+                });
+            },
+        }],
         define: {
             'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
             'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnon),

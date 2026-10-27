@@ -208,7 +208,7 @@ export function LandingPage() {
                 <div
                   key={p.id}
                   onClick={() => {
-                    if (p.available) {
+                    if (p.available && p.id === 'batrasco') {
                       setSelectedProvider(p.id);
                     }
                   }}

@@ -1,3 +1,4 @@
+import { fetchCronTrackingEnabled, setCronTrackingEnabled } from '../api/client';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGroup, motion, useReducedMotion } from 'motion/react';
 import {
@@ -474,7 +475,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
   const [trackValidatorModalOpen, setTrackValidatorModalOpen] = useState(false);
   const [stationLegModalOpen, setStationLegModalOpen] = useState(false);
   const [convoySpacingModalOpen, setConvoySpacingModalOpen] = useState(false);
-  const [masterPaused, setMasterPaused] = useState<boolean>(() => isMasterTogglePaused());
+  const [masterPaused, setMasterPaused] = useState<boolean>(true);
   const [masterBusy, setMasterBusy] = useState(false);
   const [masterProgress, setMasterProgress] = useState<MasterToggleProgress | null>(null);
   const [masterError, setMasterError] = useState<string | null>(null);
@@ -487,7 +488,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
     () => vehicles.length > 0 && vehicles.every((v) => v.ingestEnabled === false),
     [vehicles]
   );
-  const effectiveMasterPaused = masterPaused || allVehiclesDisabled;
+  const effectiveMasterPaused = masterPaused;
   const masterTrackingEnabled = !effectiveMasterPaused;
 
   const handleToggleMasterTracking = useCallback(async () => {
@@ -496,19 +497,13 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
     setMasterError(null);
     setMasterProgress({ total: vehicles.length, completed: 0, failed: 0 });
     try {
-      const result = effectiveMasterPaused
-        ? await resumeAllTracking(vehicles, (p) => setMasterProgress(p))
-        : await pauseAllTracking(vehicles, (p) => setMasterProgress(p));
-      setMasterPaused(isMasterTogglePaused());
-      if (!result.ok) {
-        setMasterError(
-          `Applied to ${result.attempted - result.failed.length}/${result.attempted} devices. Failed: ${result.failed.join(', ')}`
-        );
-      }
+      const result = await setCronTrackingEnabled(effectiveMasterPaused);
+      if (!result.ok) throw new Error(result.error || 'Tracking setting was not saved');
+      setMasterPaused(!result.enabled);
       onIngestSettingsChanged?.();
     } catch (e) {
       setMasterError(e instanceof Error ? e.message : String(e));
-      setMasterPaused(isMasterTogglePaused());
+
     } finally {
       setMasterBusy(false);
       setMasterProgress(null);
@@ -516,14 +511,15 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
   }, [masterBusy, effectiveMasterPaused, onIngestSettingsChanged, vehicles]);
 
   useEffect(() => {
-    /** Keep topbar button in sync if another tab mutates the snapshot. */
-    const onStorage = (event: StorageEvent) => {
-      if (event.key === null || event.key === 'tracker-master-toggle:snapshot:v1') {
-        setMasterPaused(isMasterTogglePaused());
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    let active = true;
+    async function load() {
+      const result = await fetchCronTrackingEnabled();
+      if (!active) return;
+      if (result.ok) setMasterPaused(!result.enabled);
+      else setMasterError(result.error || 'Tracking setting unavailable');
+    }
+    void load(); const timer = setInterval(() => void load(), 15000);
+    return () => { active = false; clearInterval(timer); };
   }, []);
 
   const openTrackValidatorModal = useCallback(() => {
@@ -689,14 +685,16 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
 
     if (!selectedVehicleId) {
       setHistoryPoints([]);
-      setHistoryMessage('Select a device to load its JSON-backed route history.');
+      setHistoryMessage('Select a device to view its saved route history.');
       return () => {
         cancelled = true;
       };
     }
 
     void loadHistory(selectedVehicleId);
+    const timer = setInterval(() => { if (!document.hidden) void loadHistory(selectedVehicleId); }, 15000);
     return () => {
+      clearInterval(timer);
       cancelled = true;
     };
   }, [selectedVehicleId]);
@@ -723,8 +721,9 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
       setIngestToggleBusyId(vehicleId);
       try {
         const result = await setVehicleIngestEnabled(vehicleId, enabled);
-        if (result.ok) onIngestSettingsChanged?.();
-      } finally {
+        if (!result.ok) throw new Error(result.error || 'Setting could not be saved');
+        onIngestSettingsChanged?.();
+      } catch (error) { setMasterError((error as Error).message); } finally {
         setIngestToggleBusyId(null);
       }
     },
@@ -736,8 +735,9 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
       setIntervalUpdateBusyId(vehicleId);
       try {
         const result = await setVehicleScrapeIntervalMs(vehicleId, intervalMs);
-        if (result.ok) onIngestSettingsChanged?.();
-      } finally {
+        if (!result.ok) throw new Error(result.error || 'Setting could not be saved');
+        onIngestSettingsChanged?.();
+      } catch (error) { setMasterError((error as Error).message); } finally {
         setIntervalUpdateBusyId(null);
       }
     },
@@ -746,6 +746,7 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
 
   return (
     <div className="sinotrack-layout tracker-settings-page tracker-ui absolute inset-0 flex min-h-0 min-w-0 flex-col overflow-hidden bg-[#f0f2f5]">
+      {masterError && <div role="alert" className="bg-red-50 px-4 py-3 text-sm text-red-800">{masterError}</div>}
       {mobileSidebarOpen && (
         <button
           type="button"
@@ -798,8 +799,8 @@ export function TrackerSettingsPage({ vehicles, onIngestSettingsChanged }: Track
             masterError
               ? `Last toggle finished with errors: ${masterError}`
               : masterTrackingEnabled
-                ? `Tracking is ON. Click to pause ALL ${vehicles.length} devices; each device's current on/off state will be remembered and restored when you resume.`
-                : `Tracking is PAUSED. Click to restore each device to the on/off state it had before the bulk pause.`
+                ? 'Pause scheduled GPS collection. Per-device settings are preserved.'
+                : 'Resume scheduled GPS collection using existing per-device settings.'
           }
           className={cn(
             'tracker-ui-press inline-flex shrink-0 items-center gap-1.5 rounded border px-2.5 py-1.5 text-xs font-semibold shadow-sm transition-colors',

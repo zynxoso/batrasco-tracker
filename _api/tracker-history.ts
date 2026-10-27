@@ -1,3 +1,5 @@
+import { requireAdmin } from '../src/lib/server/access';
+import { nodeHandler } from '../src/lib/server/http-handler';
 /**
  * GET /api/tracker-history?device_id=…&limit=100
  * Returns recent ingest snapshots from Vercel KV / Upstash, with Supabase fallback.
@@ -9,7 +11,7 @@ import { getTrackerHistoryFromDb } from '../src/lib/server/tracker-db';
 const CORS: HeadersInit = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Cache-Control': 'no-store',
 };
 
@@ -18,6 +20,7 @@ export async function OPTIONS() {
 }
 
 export async function GET(request: Request) {
+  const denied = await requireAdmin(request); if (denied) return denied;
   const url = new URL(request.url);
   const deviceId = url.searchParams.get('device_id')?.trim();
   if (!deviceId) {
@@ -62,3 +65,5 @@ export async function GET(request: Request) {
     { status: 200, headers: { 'Content-Type': 'application/json', ...CORS } }
   );
 }
+
+export default nodeHandler({OPTIONS, GET});

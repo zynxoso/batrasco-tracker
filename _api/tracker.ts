@@ -3,4 +3,4 @@
  * Bridge can use either URL (e.g. INGEST_URL=https://.../api/tracker).
  */
 
-export { OPTIONS, POST } from './ingest';
+export { default, OPTIONS, POST } from './ingest';

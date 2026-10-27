@@ -10,7 +10,7 @@ type FleetMapLoginModalProps = {
 };
 
 export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLoginModalProps) {
-  const [username, setUsername] = useState('');
+  const [username, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
 
   useEffect(() => {
     if (isOpen) {
-      setUsername('');
+      setEmail('');
       setPassword('');
       setError(null);
       setShowPassword(false);
@@ -42,19 +42,18 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    const valid = verifyAndAuthorizeAdmin(username, password);
-    if (valid) {
-      setIsSubmitting(false);
+    try {
+      await verifyAndAuthorizeAdmin(username, password);
+      setPassword('');
       onSuccess();
-    } else {
-      setIsSubmitting(false);
-      setError('Invalid username or password. Please try again.');
-    }
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Unable to sign in.');
+    } finally { setIsSubmitting(false); }
   };
 
   return (
@@ -128,7 +127,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                 htmlFor="fleet-username"
                 className="block text-xs font-semibold text-slate-700"
               >
-                Username
+                Email
               </label>
               <div className="relative mt-1.5 rounded-lg shadow-sm">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -137,12 +136,12 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                 <input
                   ref={usernameInputRef}
                   id="fleet-username"
-                  type="text"
+                  type="email"
                   required
-                  autoComplete="username"
+                  autoComplete="email"
                   value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter email"
                   className="block w-full rounded-lg border border-slate-300/90 bg-slate-50/50 py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-[#253272] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#253272]/20"
                 />
               </div>

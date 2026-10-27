@@ -1,3 +1,5 @@
+import { requireIngest } from '../src/lib/server/access';
+import { nodeHandler } from '../src/lib/server/http-handler';
 /**
  * Flespi HTTP stream → same persistence as /api/ingest.
  * Flespi POSTs a JSON array of messages with dotted keys, e.g.:
@@ -13,7 +15,7 @@ import { persistTrackerReport } from '../src/lib/server/tracker-db';
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
 export async function OPTIONS() {
@@ -90,6 +92,7 @@ function flespiMessageToInput(raw: Record<string, unknown>): SinotrackReportInpu
 }
 
 export async function POST(request: Request) {
+  const denied = requireIngest(request); if (denied) return denied;
   if (request.headers.get('content-type')?.includes('application/json') === false) {
     return new Response(JSON.stringify({ error: 'Content-Type must be application/json' }), {
       status: 400,
@@ -113,6 +116,7 @@ export async function POST(request: Request) {
       ? ((body as { messages: Record<string, unknown>[] }).messages ?? [])
       : [];
 
+  if (messages.length > 100) return new Response('Batch limit is 100', { status: 413 });
   const reports = messages
     .map((m) => flespiMessageToInput(m))
     .filter((r): r is SinotrackReportInput => r != null);
@@ -145,3 +149,5 @@ export async function POST(request: Request) {
     headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
   });
 }
+
+export default nodeHandler({OPTIONS, POST});

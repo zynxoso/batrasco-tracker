@@ -1,3 +1,4 @@
+import { adminHeaders } from '../lib/auth/admin-auth';
 /**
  * API client for tracker/vehicle data (Sinotrack-style backend).
  * POST /api/trackers-poll is triggered every 5s from the dashboard; GET /api/vehicles
@@ -60,10 +61,7 @@ export type TriggerTrackersPollResult = {
  */
 export async function triggerTrackersPoll(): Promise<TriggerTrackersPollResult> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const viteSecret = import.meta.env.VITE_TRACKER_POLL_SECRET;
-  if (typeof viteSecret === 'string' && viteSecret) {
-    headers['X-Tracker-Poll-Secret'] = viteSecret;
-  }
+  Object.assign(headers, await adminHeaders());
   try {
     const res = await fetch(TRACKERS_POLL_URL, {
       method: 'POST',
@@ -104,14 +102,14 @@ export async function triggerTrackersPoll(): Promise<TriggerTrackersPollResult> 
 export type CronTrackingState = {
   ok: boolean;
   enabled: boolean;
-  source: 'kv' | 'default';
+  source: 'kv' | 'default' | 'database';
   reason?: string;
   error?: string;
 };
 
 export async function fetchCronTrackingEnabled(): Promise<CronTrackingState> {
   try {
-    const res = await fetch(CRON_TRACKING_TOGGLE_URL, { cache: 'no-store' });
+    const res = await fetch(CRON_TRACKING_TOGGLE_URL, { cache: 'no-store', headers: await adminHeaders() });
     const text = await res.text();
     let j: Partial<CronTrackingState> & { error?: string };
     try {
@@ -145,10 +143,7 @@ export async function fetchCronTrackingEnabled(): Promise<CronTrackingState> {
 
 export async function setCronTrackingEnabled(enabled: boolean): Promise<CronTrackingState> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const viteSecret = import.meta.env.VITE_VEHICLE_INGEST_TOGGLE_SECRET;
-  if (typeof viteSecret === 'string' && viteSecret) {
-    headers['X-Vehicle-Ingest-Toggle-Secret'] = viteSecret;
-  }
+  Object.assign(headers, await adminHeaders());
   try {
     const res = await fetch(CRON_TRACKING_TOGGLE_URL, {
       method: 'PATCH',
@@ -192,10 +187,7 @@ export async function setVehicleIngestEnabled(
   enabled: boolean
 ): Promise<{ ok: boolean; error?: string }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const viteSecret = import.meta.env.VITE_VEHICLE_INGEST_TOGGLE_SECRET;
-  if (typeof viteSecret === 'string' && viteSecret) {
-    headers['X-Vehicle-Ingest-Toggle-Secret'] = viteSecret;
-  }
+  Object.assign(headers, await adminHeaders());
   const res = await fetch(INGEST_TOGGLE_URL, {
     method: 'PATCH',
     headers,
@@ -217,10 +209,7 @@ export async function setVehicleScrapeIntervalMs(
   intervalMs: number
 ): Promise<{ ok: boolean; error?: string }> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  const viteSecret = import.meta.env.VITE_VEHICLE_INGEST_TOGGLE_SECRET;
-  if (typeof viteSecret === 'string' && viteSecret) {
-    headers['X-Vehicle-Ingest-Toggle-Secret'] = viteSecret;
-  }
+  Object.assign(headers, await adminHeaders());
   const res = await fetch(SCRAPE_INTERVAL_URL, {
     method: 'PATCH',
     headers,
@@ -262,12 +251,12 @@ function parseFleetDataAtHeader(value: string | null): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-export async function fetchVehicles(previousEtag?: string): Promise<FetchVehiclesResult> {
-  const headers: HeadersInit = { cache: 'no-store' };
+export async function fetchVehicles(previousEtag?: string, signal?: AbortSignal, admin = false): Promise<FetchVehiclesResult> {
+  const headers: Record<string,string> = admin ? await adminHeaders() : {};
   if (previousEtag) headers['If-None-Match'] = previousEtag;
   let res: Response;
   try {
-    res = await fetch(VEHICLES_URL, { headers });
+    res = await fetch(admin ? `${VEHICLES_URL}?admin=true` : VEHICLES_URL, { headers, signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000) });
   } catch (e) {
     const cause = e instanceof Error ? e.message : String(e);
     throw new Error(
@@ -331,7 +320,7 @@ export async function fetchTrackerHistory(
   const url = `${TRACKER_HISTORY_URL}?device_id=${encodeURIComponent(deviceId)}&limit=${limit}`;
   let res: Response;
   try {
-    res = await fetch(url, { cache: 'no-store' });
+    res = await fetch(url, { cache: 'no-store', headers: await adminHeaders() });
   } catch (e) {
     const cause = e instanceof Error ? e.message : String(e);
     return { points: [], configured: false, error: cause };
