@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
-import { Link, NavLink, Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
+import { Link, NavLink, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { fetchVehicles } from './api/client';
 import { stations as defaultStations, type Station } from './data/route-stations';
 import { isDeviceOnTrack } from './lib/route/route-corridor';
@@ -55,7 +55,7 @@ function StationView({ stations, vehicles, selected, onSelect }: {stations:Stati
   return <LiveRouteDashboardPage stations={stations} vehicles={vehicles} selectedVehicle={selected} onVehicleSelect={onSelect} focusedStationId={stationId}/>;
 }
 export default function App() {
-  const location=useLocation();
+  const location=useLocation();const navigate=useNavigate();
   const [demo]=useState(isDemoMode);
   const [,setDemoRevision]=useState(0);
   const [vehicles,setVehicles]=useState<Vehicle[]>([]);
@@ -65,6 +65,8 @@ export default function App() {
   const [login,setLogin]=useState(false);const [admin,setAdmin]=useState(false);const [authReady,setAuthReady]=useState(false);
   const [refresh,setRefresh]=useState(0);const [now,setNow]=useState(Date.now());
   const wantsData=location.pathname!=='/' && location.pathname!=='/manage';
+  const protectedRoute=location.pathname==='/tracker-settings'||location.pathname==='/manage';
+  useEffect(()=>{setLogin(protectedRoute&&authReady&&!admin);},[protectedRoute,authReady,admin,location.key]);
   useEffect(()=>{
     if(!demo)return;
     const update=()=>{setVehicles(demoRuntime.vehicles());setStations(demoRuntime.stations());setLoading(false);setError('');setDemoRevision(v=>v+1);};
@@ -76,14 +78,13 @@ export default function App() {
     return()=>{clearInterval(timer);unsubscribe();save();window.removeEventListener('pagehide',save);};
   },[demo]);
   useEffect(()=>{
-    if(demo){setAuthReady(true);return;}
     let active=true;let version=0;
-    async function check(){const n=++version; const session=await supabaseBrowser?.auth.getSession(); const allowed=session?.data.session ? await isFleetAdminAuthorized() : false;if(active&&n===version){setAdmin(allowed);setAuthReady(true);}}
+    async function check(){const n=++version;let allowed=false;try{const session=await supabaseBrowser?.auth.getSession();allowed=session?.data.session ? await isFleetAdminAuthorized() : false;}catch{}if(active&&n===version){setAdmin(allowed);setAuthReady(true);}}
     void check();
     const sub=supabaseBrowser?.auth.onAuthStateChange(()=>{setTimeout(()=>{if(active)void check();},0);});
     const timer=setInterval(()=>void check(),60000);
     return()=>{active=false;clearInterval(timer);sub?.data.subscription.unsubscribe();};
-  },[demo]);
+  },[]);
   useEffect(()=>{
     if(!wantsData||demo)return;
     let active=true;const controller=new AbortController();
@@ -112,13 +113,13 @@ export default function App() {
   },[wantsData,refresh,admin,demo]);
   const freshVehicles=demo?vehicles:vehicles.map(v=>{const fresh=v.trackerOnline!==false&&isGpsFresh(v.lastUpdated,now);return {...v,trackerOnline:fresh,status:fresh&&v.status!=='offline'?'online' as const:'offline' as const,speed:fresh?v.speed:0,etaInDirectionOfTravel:fresh?v.etaInDirectionOfTravel:'Unavailable'};});
   const publicVehicles=freshVehicles.filter(v=>v.ingestEnabled!==false&&isDeviceOnTrack(v.latitude,v.longitude)===true);
-  const protectedPage=(content:React.ReactNode)=>demo?content:!authReady?<p className="app-loading">Checking session…</p>:admin?content:<div className="app-loading"><h1>Administrator sign-in required</h1><p>Use your fleet administrator email account.</p><button onClick={()=>setLogin(true)}>Sign in</button></div>;
+  const protectedPage=(content:React.ReactNode)=>!authReady?<p className="app-loading">Checking session…</p>:admin?content:<div className="app-loading"><h1>Fleet map sign-in required</h1><p>Sign in with your administrator account to access fleet controls.</p><button onClick={()=>setLogin(true)}>Sign in</button></div>;
   return <div className={`app-shell min-h-screen flex flex-col bg-slate-50${location.pathname==='/tracker-settings'?' app-shell--map':''}`}>
-    <nav className="app-nav" aria-label="Main sections"><Link to="/"><img src={batrascoLogo} alt="BATRASCO"/></Link><NavLink to="/tracker">Dashboard</NavLink><NavLink to="/tracker-settings">Fleet map</NavLink><NavLink to="/manage">Manage records</NavLink>{admin?<button onClick={async()=>{await supabaseBrowser?.auth.signOut();setAdmin(false);setVehicles([]);}}>Sign out</button>:<button onClick={()=>setLogin(true)}>Admin sign in</button>}{demo&&<span className="app-mode-badge" title="Positions are generated locally, not received from GPS devices.">Simulated locations</span>}</nav>
+    <nav className="app-nav" aria-label="Main sections"><Link to="/"><img src={batrascoLogo} alt="BATRASCO"/></Link><NavLink to="/tracker">Dashboard</NavLink><NavLink to="/tracker-settings">Fleet map</NavLink>{admin&&<NavLink to="/manage">Manage records</NavLink>}{admin&&<button onClick={async()=>{await supabaseBrowser?.auth.signOut();setAdmin(false);setVehicles([]);navigate('/tracker');}}>Sign out</button>}{demo&&<span className="app-mode-badge" title="Positions are generated locally, not received from GPS devices.">Simulated locations</span>}</nav>
     {wantsData&&error&&<div className="app-alert" role="alert">{error}</div>}
     {wantsData&&loading&&<p className="app-loading" role="status">Loading vehicle data…</p>}
     {wantsData&&!loading&&!error&&!freshVehicles.some(v=>v.trackerOnline)&&<div className="app-alert">No vehicles are reporting on this route right now.</div>}
-    <FleetMapLoginModal isOpen={login} onClose={()=>setLogin(false)} onSuccess={()=>{setLogin(false);setAdmin(true);setAuthReady(true);setRefresh(v=>v+1);}}/>
+    <FleetMapLoginModal isOpen={login} onClose={()=>{setLogin(false);navigate('/tracker');}} onSuccess={()=>{setLogin(false);setAdmin(true);setAuthReady(true);setRefresh(v=>v+1);}}/>
     <Suspense fallback={<p className="app-loading">Loading…</p>}><Routes>
       <Route path="/" element={<LandingPage/>}/>
       <Route path="/tracker" element={<div className="live-route-dashboard-shell p-4"><LiveRouteDashboardPage stations={stations} vehicles={publicVehicles} selectedVehicle={selected} onVehicleSelect={setSelected}/></div>}/>

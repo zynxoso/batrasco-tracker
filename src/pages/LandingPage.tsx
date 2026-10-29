@@ -48,7 +48,7 @@ export function LandingPage() {
       id: 'batrasco' as const,
       name: 'BATRASCO',
       subtitle: 'Batangas Transport Cooperative',
-      description: 'Serving Batangas communities since 1995',
+      description: 'Serving Batangas communities since 2007',
       available: true,
       color: 'from-blue-600 to-indigo-700',
     },

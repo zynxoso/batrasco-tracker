@@ -17,3 +17,9 @@ describe('administrator session',()=>{
   it('fails closed if role lookup fails',async()=>{client.rpc.mockResolvedValue({data:null,error:{message:'unavailable'}});expect(await isFleetAdminAuthorized()).toBe(false);});
   it('does not authorize a missing browser session',async()=>{client.auth.getSession.mockResolvedValue({data:{session:null}});await expect(adminHeaders()).rejects.toThrow('sign in');});
 });
+
+it('rejects an incorrect password before checking the administrator role',async()=>{
+  client.auth.signInWithPassword.mockResolvedValue({error:{message:'Invalid credentials'}});
+  await expect(verifyAndAuthorizeAdmin('operator@example.test','wrong')).rejects.toThrow('Check your email and password');
+  expect(client.rpc).not.toHaveBeenCalled();
+});

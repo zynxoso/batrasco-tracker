@@ -64,7 +64,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
       aria-labelledby="fleet-modal-title"
     >
       <div
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl shadow-slate-900/25 transition-all"
+        className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200/90 bg-white shadow-2xl shadow-slate-900/25 transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top accent bar matching system brand colors */}
@@ -101,13 +101,13 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                 id="fleet-modal-title"
                 className="text-lg font-bold leading-tight text-[#17256b]"
               >
-                Security Verification
+                Fleet map sign in
               </h2>
             </div>
           </div>
 
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            Please enter your operator credentials to access the <strong>Fleet Map</strong> controls and live telemetry.
+            Enter your administrator email and password to access the <strong>Fleet map</strong> and manage fleet records.
           </p>
 
           {/* Form */}
