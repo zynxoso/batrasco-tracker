@@ -8,7 +8,7 @@ The existing screens default to the simulation feed for a fresh browser, identif
 
 1. Export a backup of the existing database before applying schema/access changes.
 2. In the correct Supabase project's SQL Editor, run `supabase/migrations/202610270001_fleet_management.sql`. It adds fleet tables, seeds the existing route and stops, enables administrator policies, and restricts direct access to raw tracker tables. It does not delete telemetry records. Existing trackers are imported as inactive vehicles pending review.
-3. Create or identify an administrator in Supabase Authentication → Users. Set the user's password privately through the dashboard or the normal recovery flow. Do not put it in source code or a VITE variable.
+3. Create the administrator in Supabase Authentication → Users using the internal address `<lowercase-username>@fleet.batrasco.internal` and mark it confirmed. For `adminBatrasco`, use `adminbatrasco@fleet.batrasco.internal`. The login form accepts the username; Supabase verifies its password. Set the password privately through the dashboard; this internal address has no recovery mailbox. Do not put passwords in source code or a VITE variable.
 4. Grant that existing user fleet access through the SQL Editor:
 
 ```sql

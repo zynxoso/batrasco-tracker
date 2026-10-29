@@ -10,7 +10,7 @@ type FleetMapLoginModalProps = {
 };
 
 export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLoginModalProps) {
-  const [username, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -19,7 +19,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
 
   useEffect(() => {
     if (isOpen) {
-      setEmail('');
+      setUsername('');
       setPassword('');
       setError(null);
       setShowPassword(false);
@@ -107,7 +107,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
           </div>
 
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            Enter your administrator email and password to access the <strong>Fleet map</strong> and manage fleet records.
+            Enter your administrator username and password to access the <strong>Fleet map</strong> and manage fleet records.
           </p>
 
           {/* Form */}
@@ -127,7 +127,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                 htmlFor="fleet-username"
                 className="block text-xs font-semibold text-slate-700"
               >
-                Email
+                Username
               </label>
               <div className="relative mt-1.5 rounded-lg shadow-sm">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
@@ -136,12 +136,14 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                 <input
                   ref={usernameInputRef}
                   id="fleet-username"
-                  type="email"
+                  type="text"
                   required
-                  autoComplete="email"
+                  autoComplete="username"
+                  autoCapitalize="none"
+                  spellCheck={false}
                   value={username}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter email"
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter username"
                   className="block w-full rounded-lg border border-slate-300/90 bg-slate-50/50 py-2.5 pl-9 pr-3 text-sm text-slate-900 transition-colors placeholder:text-slate-400 focus:border-[#253272] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#253272]/20"
                 />
               </div>

@@ -4,10 +4,13 @@ export async function isFleetAdminAuthorized(): Promise<boolean> {
   const { data, error } = await supabaseBrowser.rpc('is_fleet_admin');
   return !error && data === true;
 }
-export async function verifyAndAuthorizeAdmin(email: string, password: string): Promise<boolean> {
+export async function verifyAndAuthorizeAdmin(username: string, password: string): Promise<boolean> {
   if (!supabaseBrowser) throw new Error('Admin sign-in is not configured yet.');
-  const { error } = await supabaseBrowser.auth.signInWithPassword({ email: email.trim(), password });
-  if (error) throw new Error('Unable to sign in. Check your email and password.');
+  const login = username.trim().toLowerCase();
+  if (!/^[a-z0-9_]{3,64}$/.test(login)) throw new Error('Unable to sign in. Check your username and password.');
+  // Supabase validates the password; this internal address only maps the username to its Auth account.
+  const { error } = await supabaseBrowser.auth.signInWithPassword({ email: `${login}@fleet.batrasco.internal`, password });
+  if (error) throw new Error('Unable to sign in. Check your username and password.');
   if (await isFleetAdminAuthorized()) return true;
   await supabaseBrowser.auth.signOut();
   throw new Error('This account does not have fleet administrator access.');
