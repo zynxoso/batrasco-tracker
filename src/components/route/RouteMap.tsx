@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Navigation } from 'lucide-react';
 import { Vehicle, Station } from '../../App';
 import { resolveDirectionAlongRoute, ROUTE_LENGTH_KM } from '../../lib/route/route-geometry';
+import './RouteMap.css';
 
 /** km from SM Lipa (corridor east endpoint @ 100%) backwards to `positionPercent`. */
 function kmFromSm(positionPercent: number): number {
@@ -27,6 +28,11 @@ export function RouteMap({
   onVehicleSelect,
   focusedStationId = null,
 }: RouteMapProps) {
+  // Fit the visible stops and vehicles; the actual corridor positions and ETA stay unchanged.
+  const positions = [...stations.map(s => s.position), ...vehicles.map(v => v.currentPosition)].filter(Number.isFinite);
+  const start = positions.length ? Math.min(...positions) : 0;
+  const end = positions.length ? Math.max(...positions) : 100;
+  const displayPosition = (position: number) => end > start ? (position - start) / (end - start) * 100 : 50;
   const TRAFFIC_SPEED_THRESHOLD_KMH = 12;
   /** Yellow = slow roll / possible congestion, not parked (speed 0). */
   const isSlowMovingTraffic = (v: Vehicle) =>
@@ -55,9 +61,12 @@ export function RouteMap({
         </span>
       </div>
 
-      <div className="relative min-h-[min(22rem,58vh)] overflow-hidden rounded-lg bg-gradient-to-r from-[#ecfdf5]/90 via-slate-50 to-[#fff1eb]/95 py-3 pl-2 pr-2 pb-12 pt-3 ring-1 ring-slate-200/60 sm:min-h-[200px] sm:pl-4 sm:pr-20 sm:pt-4 sm:pb-14">
-        {/* Route Path — Lipa (green) → Batangas (orange) */}
-        <div className="absolute top-1/2 left-6 right-6 h-2 rounded-full bg-slate-200/90 -translate-y-1/2">
+      <p className="route-strip-hint">Swipe sideways to see the full route.</p>
+      <div className="route-strip-scroll" role="region" aria-label="Route visualization, scroll horizontally on small screens" tabIndex={0}>
+      <div className="route-strip-canvas bg-gradient-to-r from-[#ecfdf5]/90 via-slate-50 to-[#fff1eb]/95">
+      <div className="route-strip-track">
+        {/* Shared display coordinates keep buses aligned with their stops. */}
+        <div className="route-strip-line absolute h-2 rounded-full bg-slate-200/90 -translate-y-1/2">
           <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#22c55e]/55 via-[#94a3b8]/35 to-[#ea580c]/55 opacity-90" />
         </div>
 
@@ -65,11 +74,9 @@ export function RouteMap({
         {stations.map((station) => (
           <div
             key={station.id}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center"
-            style={{ left: `calc(6% + ${station.position * 0.88}%)` }}
+            className="route-strip-station absolute -translate-x-1/2 flex flex-col items-center"
+            style={{ left: `${displayPosition(station.position)}%` }}
           >
-            {/* Spacer so pin center sits on route line; then pin + connector + card */}
-            <div className="shrink-0" style={{ height: '3.5rem' }} aria-hidden />
             <div className="relative z-10 flex flex-col items-center shrink-0">
               <div className="flex h-10 w-10 items-center justify-center rounded-full border-[3px] border-white bg-gradient-to-br from-[#253272] to-[#484d80] shadow-xl shadow-[#17256b]/30 ring-2 ring-[#484d80]/35">
                 <MapPin className="h-5 w-5 text-white" strokeWidth={2.5} aria-hidden />
@@ -78,7 +85,7 @@ export function RouteMap({
             </div>
             <Link
               to={`/station/${station.id}`}
-              className={`mt-1 block h-auto min-h-[4.5rem] w-[min(12.5rem,calc(50vw-1.25rem))] max-w-[12.5rem] shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 bg-white text-inherit shadow-[0_8px_18px_rgba(23,37,107,0.12)] no-underline outline-none ring-offset-2 transition-[border-color,box-shadow] hover:border-[#17256b]/35 hover:shadow-[0_10px_22px_rgba(23,37,107,0.16)] focus-visible:ring-2 focus-visible:ring-[#253272]/40 sm:min-h-[4.75rem] sm:w-[12.5rem] ${
+              className={`route-strip-station-card mt-1 block h-auto min-h-[4.5rem] shrink-0 cursor-pointer overflow-hidden rounded-2xl border-2 bg-white text-inherit shadow-[0_8px_18px_rgba(23,37,107,0.12)] no-underline outline-none ring-offset-2 transition-[border-color,box-shadow] hover:border-[#17256b]/35 hover:shadow-[0_10px_22px_rgba(23,37,107,0.16)] focus-visible:ring-2 focus-visible:ring-[#253272]/40 sm:min-h-[4.75rem] ${
                 focusedStationId === station.id
                   ? 'border-[#c23e01]/55 ring-2 ring-[#c23e01]/25'
                   : 'border-[#17256b]/20'
@@ -95,7 +102,7 @@ export function RouteMap({
                     Station {station.stationNumber}
                   </span>
                   <span
-                    className="mt-0.5 line-clamp-2 text-xs leading-tight text-[#253272]/90 sm:truncate sm:text-sm sm:whitespace-nowrap"
+                    className="mt-0.5 text-xs leading-tight text-[#253272]/90 sm:text-sm"
                     title={station.name}
                   >
                     {station.name}
@@ -122,8 +129,8 @@ export function RouteMap({
           return (
           <div
             key={vehicle.id}
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 cursor-pointer transition-all duration-500"
-            style={{ left: `calc(6% + ${vehicle.currentPosition * 0.88}%)` }}
+            className="route-strip-vehicle absolute -translate-y-1/2 -translate-x-1/2 cursor-pointer transition-all duration-500"
+            style={{ left: `${displayPosition(vehicle.currentPosition)}%` }}
             onClick={() => onVehicleSelect(vehicle.id)}
           >
             <div className={`relative ${isSelected ? 'scale-125' : 'scale-100'} transition-transform`}>
@@ -155,13 +162,9 @@ export function RouteMap({
           );
         })}
 
-        {/* Distance label — SM Lipa (corridor east endpoint) is the 0 km
-            reference at the RIGHT end of the strip. Left-end Palico label
-            removed per product: per-station `~N km` labels inside the cards
-            already convey each stop's distance from SM. */}
-        <div className="absolute bottom-3 left-6 right-6 flex justify-end text-xs text-gray-500">
-          <span>0 km</span>
-        </div>
+      </div>
+      <div className="route-strip-distance-note">Distances from SM Lipa</div>
+      </div>
       </div>
 
       {/* Legend — explicit colors so pills never match (violet/amber were both peach in theme). */}
