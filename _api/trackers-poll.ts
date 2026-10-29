@@ -1,4 +1,3 @@
-import { secretMatches, requireAdmin } from '../src/lib/server/access';
 /**
  * POST /api/trackers-poll
  *
@@ -165,9 +164,23 @@ export default async function handler(req: any, res?: any) {
 }
 
 async function handle(request: Request): Promise<Response> {
-  const authorizedWorker = secretMatches(request.headers.get('x-tracker-poll-secret'), process.env.TRACKER_POLL_SECRET)
-    || secretMatches(request.headers.get('authorization')?.replace(/^Bearer /i, '') ?? null, process.env.CRON_SECRET);
-  if (!authorizedWorker) { const denied = await requireAdmin(request); if (denied) return denied; }
+  const pollSecret = process.env.TRACKER_POLL_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
+  const userAgent = (request.headers.get('user-agent') ?? '').toLowerCase();
+  const looksLikeVercelCron = userAgent.startsWith('vercel-cron/');
+  if (pollSecret || cronSecret) {
+    const headerSecret = request.headers.get('x-tracker-poll-secret');
+    const bearer = request.headers.get('authorization');
+    const bearerSecret = bearer && bearer.startsWith('Bearer ') ? bearer.slice('Bearer '.length).trim() : null;
+    const okPollSecret = pollSecret ? headerSecret === pollSecret : false;
+    const okCronSecret = cronSecret ? bearerSecret === cronSecret : false;
+    // Vercel Cron passes through the platform with a stable user-agent. When the
+    // operator hasn't set CRON_SECRET we still want those scheduled invocations
+    // to succeed — otherwise the cron silently 403s and looks "broken".
+    if (!okPollSecret && !okCronSecret && !(looksLikeVercelCron && !cronSecret)) {
+      return jsonResponse(403, { ok: false, error: 'Forbidden' });
+    }
+  }
 
   const cronState = await getCronTrackingEnabled();
   if (!cronState.enabled) {
@@ -265,7 +278,7 @@ async function handle(request: Request): Promise<Response> {
         deferred_poll_devices: jobs.length,
         default_interval_ms: defaultIntervalMs,
         forced: force,
-        triggered_by: authorizedWorker ? 'authenticated-worker' : 'administrator',
+        triggered_by: looksLikeVercelCron ? 'vercel-cron' : request.method,
         cron_tracking_enabled: cronState.enabled,
         cron_tracking_source: cronState.source,
         ...(cronState.reason ? { cron_tracking_reason: cronState.reason } : {}),
@@ -324,7 +337,7 @@ async function handle(request: Request): Promise<Response> {
       : { fleet_parallel_poll: false }),
     default_interval_ms: defaultIntervalMs,
     forced: force,
-    triggered_by: authorizedWorker ? 'authenticated-worker' : 'administrator',
+    triggered_by: looksLikeVercelCron ? 'vercel-cron' : request.method,
     cron_tracking_enabled: cronState.enabled,
     cron_tracking_source: cronState.source,
     ...(cronState.reason ? { cron_tracking_reason: cronState.reason } : {}),

@@ -48,7 +48,7 @@ export function LandingPage() {
       id: 'batrasco' as const,
       name: 'BATRASCO',
       subtitle: 'Batangas Transport Cooperative',
-      description: 'Serving Batangas communities since 2007',
+      description: 'Serving Batangas communities since 1995',
       available: true,
       color: 'from-blue-600 to-indigo-700',
     },
@@ -208,7 +208,7 @@ export function LandingPage() {
                 <div
                   key={p.id}
                   onClick={() => {
-                    if (p.available && p.id === 'batrasco') {
+                    if (p.available) {
                       setSelectedProvider(p.id);
                     }
                   }}

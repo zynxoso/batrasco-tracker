@@ -87,20 +87,13 @@ function parseBatteryPercent(raw: SinotrackReportInput): number | undefined {
 }
 
 export function normalizeSinotrackReport(raw: SinotrackReportInput): TrackerReportRow | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const id = raw.device_id ?? raw.imei;
-  if (typeof id !== 'string') return null;
-  const vehicleId = id.trim();
-  if (!vehicleId || vehicleId.length > 160) return null;
-  const timestamp = raw.reported_at == null ? Date.now() : new Date(raw.reported_at).getTime();
-  if (!Number.isFinite(timestamp) || timestamp > Date.now() + 60000) return null;
-  const rawLat = raw.lat ?? raw.latitude; const rawLng = raw.lng ?? raw.longitude;
-  if ((rawLat != null || rawLng != null) && (typeof rawLat !== 'number' || typeof rawLng !== 'number' || !Number.isFinite(rawLat) || !Number.isFinite(rawLng) || Math.abs(rawLat) > 90 || Math.abs(rawLng) > 180)) return null;
-  const rawSpeed = raw.speed_kmh ?? raw.speed;
-  if (rawSpeed != null && (typeof rawSpeed !== 'number' || !Number.isFinite(rawSpeed) || rawSpeed < 0 || rawSpeed > 200)) return null;
+  const vehicleId = (raw.device_id ?? raw.imei)?.trim();
+  if (!vehicleId) return null;
 
   const position = getPositionPercent(raw);
-  const reportedAt = new Date(timestamp).toISOString();
+  const reportedAt = raw.reported_at
+    ? (typeof raw.reported_at === 'number' ? new Date(raw.reported_at).toISOString() : String(raw.reported_at))
+    : new Date().toISOString();
 
   const lat = raw.lat ?? raw.latitude;
   const lng = raw.lng ?? raw.longitude;

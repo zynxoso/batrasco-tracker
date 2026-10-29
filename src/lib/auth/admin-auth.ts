@@ -1,23 +1,44 @@
-import { supabaseBrowser } from './supabase-browser';
-export async function isFleetAdminAuthorized(): Promise<boolean> {
-  if (!supabaseBrowser) return false;
-  const { data, error } = await supabaseBrowser.rpc('is_fleet_admin');
-  return !error && data === true;
+const SESSION_KEY = 'batrasco_fleet_authorized';
+
+// Configured credentials for fleet management access
+const FLEET_ADMIN_USER = import.meta.env.VITE_FLEET_ADMIN_USER || 'adminBatrasco';
+const FLEET_ADMIN_PASS = import.meta.env.VITE_FLEET_ADMIN_PASS || 'Batrasco@admin26';
+
+function getStorage(): Storage | null {
+  if (typeof window !== 'undefined' && window.sessionStorage) {
+    return window.sessionStorage;
+  }
+  if (typeof globalThis !== 'undefined' && (globalThis as any).sessionStorage) {
+    return (globalThis as any).sessionStorage;
+  }
+  return null;
 }
-export async function verifyAndAuthorizeAdmin(username: string, password: string): Promise<boolean> {
-  if (!supabaseBrowser) throw new Error('Admin sign-in is not configured yet.');
-  const login = username.trim().toLowerCase();
-  if (!/^[a-z0-9_]{3,64}$/.test(login)) throw new Error('Unable to sign in. Check your username and password.');
-  // Supabase validates the password; this internal address only maps the username to its Auth account.
-  const { error } = await supabaseBrowser.auth.signInWithPassword({ email: `${login}@fleet.batrasco.internal`, password });
-  if (error) throw new Error('Unable to sign in. Check your username and password.');
-  if (await isFleetAdminAuthorized()) return true;
-  await supabaseBrowser.auth.signOut();
-  throw new Error('This account does not have fleet administrator access.');
+
+/**
+ * Checks if the current browser session has been unlocked with valid credentials.
+ */
+export function isFleetAdminAuthorized(): boolean {
+  try {
+    return getStorage()?.getItem(SESSION_KEY) === 'true';
+  } catch {
+    return false;
+  }
 }
-export async function adminHeaders(): Promise<Record<string, string>> {
-  const session = await supabaseBrowser?.auth.getSession();
-  const token = session?.data.session?.access_token;
-  if (!token) throw new Error('Please sign in again.');
-  return { Authorization: `Bearer ${token}` };
+
+/**
+ * Verifies credentials and grants access for the duration of the browser tab session.
+ */
+export function verifyAndAuthorizeAdmin(username: string, password: string): boolean {
+  const isMatch =
+    username.trim() === FLEET_ADMIN_USER && password === FLEET_ADMIN_PASS;
+
+  if (isMatch) {
+    try {
+      getStorage()?.setItem(SESSION_KEY, 'true');
+    } catch (e) {
+      console.warn('Could not persist session authorization:', e);
+    }
+    return true;
+  }
+  return false;
 }

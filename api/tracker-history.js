@@ -1,51 +1,3 @@
-// src/lib/server/access.ts
-import { createClient } from "@supabase/supabase-js";
-function serverDb() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
-}
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-}
-async function requireAdmin(request) {
-  const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
-  if (!token) return json({ error: "Sign-in required" }, 401);
-  const db = serverDb();
-  if (!db) return json({ error: "Administration is not configured" }, 503);
-  try {
-    const { data, error } = await db.auth.getUser(token);
-    if (error || !data.user) return json({ error: "Session expired or invalid" }, 401);
-    const role = await db.from("fleet_admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
-    if (role.error) return json({ error: "Administration setup is incomplete" }, 503);
-    return role.data ? null : json({ error: "Administrator access required" }, 403);
-  } catch {
-    return json({ error: "Authentication service unavailable" }, 503);
-  }
-}
-
-// src/lib/server/http-handler.ts
-function nodeHandler(methods) {
-  return async (req, res) => {
-    let response;
-    try {
-      const method = req.method || "GET";
-      const headers = new Headers();
-      if (req instanceof Request) req.headers.forEach((value, key) => headers.set(key, value));
-      else for (const [key, value] of Object.entries(req.headers ?? {})) if (value) headers.set(key, String(value));
-      const body = !["GET", "HEAD"].includes(method) && req.body != null ? typeof req.body === "string" ? req.body : JSON.stringify(req.body) : void 0;
-      const request = req instanceof Request ? req : new Request(`http://localhost${req.url}`, { method, headers, body });
-      response = methods[method] ? await methods[method](request) : new Response("Method not allowed", { status: 405, headers: { Allow: Object.keys(methods).join(", ") } });
-    } catch {
-      response = new Response(JSON.stringify({ error: "Request could not be completed" }), { status: 500, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-    }
-    if (!res) return response;
-    res.statusCode = response.status;
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-    res.end(await response.text());
-  };
-}
-
 // src/lib/server/tracker-history-kv.ts
 var HISTORY_KEY_PREFIX = "tracker:hist:v1:";
 var MAX_POINTS_PER_DEVICE = 500;
@@ -62,8 +14,8 @@ async function getKvRaw() {
   const url = kvUrl();
   const token = kvToken();
   if (!url || !token) return null;
-  const { createClient: createClient2 } = await import("@vercel/kv");
-  return createClient2({
+  const { createClient } = await import("@vercel/kv");
+  return createClient({
     url,
     token,
     automaticDeserialization: false
@@ -105,9 +57,6 @@ async function getTrackerHistory(deviceId, limit) {
     return [];
   }
 }
-
-// src/lib/fleet/freshness.ts
-var GPS_STALE_MS = 5 * 60 * 1e3;
 
 // src/lib/route/distance.ts
 function distanceKm(lat1, lng1, lat2, lng2) {
@@ -291,8 +240,8 @@ async function getSupabaseClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
-  const { createClient: createClient2 } = await import("@supabase/supabase-js");
-  const supabase = createClient2(url, key);
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(url, key);
   return {
     async upsert(row, opts) {
       let speedKmh = row.speed_kmh;
@@ -442,8 +391,8 @@ async function getTrackerHistoryFromDb(deviceId, limit = 100) {
       const url = process.env.SUPABASE_URL;
       const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
       if (!url || !key) return { points: [], source: "unavailable", error: "Supabase env not configured" };
-      const { createClient: createClient2 } = await import("@supabase/supabase-js");
-      const supabase = createClient2(url, key);
+      const { createClient } = await import("@supabase/supabase-js");
+      const supabase = createClient(url, key);
       const reportSelectTiers = [
         "vehicle_id, latitude, longitude, speed_kmh, position_percent, reported_at, status, direction, battery_percent, heading_toward_lipa, created_at",
         "vehicle_id, latitude, longitude, speed_kmh, position_percent, reported_at, status, direction, battery_percent, created_at",
@@ -532,15 +481,13 @@ async function getTrackerHistoryFromDb(deviceId, limit = 100) {
 var CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Headers": "Content-Type",
   "Cache-Control": "no-store"
 };
 async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
 async function GET(request) {
-  const denied = await requireAdmin(request);
-  if (denied) return denied;
   const url = new URL(request.url);
   const deviceId = url.searchParams.get("device_id")?.trim();
   if (!deviceId) {
@@ -578,9 +525,7 @@ async function GET(request) {
     { status: 200, headers: { "Content-Type": "application/json", ...CORS } }
   );
 }
-var tracker_history_default = nodeHandler({ OPTIONS, GET });
 export {
   GET,
-  OPTIONS,
-  tracker_history_default as default
+  OPTIONS
 };

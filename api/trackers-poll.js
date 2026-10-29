@@ -1,36 +1,3 @@
-// src/lib/server/access.ts
-import { createClient } from "@supabase/supabase-js";
-import { timingSafeEqual } from "node:crypto";
-function serverDb() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
-}
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-}
-async function requireAdmin(request) {
-  const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
-  if (!token) return json({ error: "Sign-in required" }, 401);
-  const db = serverDb();
-  if (!db) return json({ error: "Administration is not configured" }, 503);
-  try {
-    const { data, error } = await db.auth.getUser(token);
-    if (error || !data.user) return json({ error: "Session expired or invalid" }, 401);
-    const role = await db.from("fleet_admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
-    if (role.error) return json({ error: "Administration setup is incomplete" }, 503);
-    return role.data ? null : json({ error: "Administrator access required" }, 403);
-  } catch {
-    return json({ error: "Authentication service unavailable" }, 503);
-  }
-}
-function secretMatches(value, secret) {
-  if (!value || !secret) return false;
-  const a = Buffer.from(value);
-  const b = Buffer.from(secret);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-
 // src/lib/server/fleet-data-clock.ts
 var FLEET_DATA_AT_KEY = "tracker:fleet_data_at:v1";
 var GLOBAL_POLL_AT_KEY = "tracker:last_global_poll_at:v1";
@@ -44,8 +11,8 @@ async function getKv() {
   const url = kvUrl();
   const token = kvToken();
   if (!url || !token) return null;
-  const { createClient: createClient2 } = await import("@vercel/kv");
-  return createClient2({ url, token, automaticDeserialization: false });
+  const { createClient } = await import("@vercel/kv");
+  return createClient({ url, token, automaticDeserialization: false });
 }
 function isFleetKvConfigured() {
   return Boolean(kvUrl() && kvToken());
@@ -80,12 +47,47 @@ async function setLastGlobalTrackerPollAt(ms) {
 }
 
 // src/lib/server/cron-state.ts
+var KEY = "tracker:cron:enabled:v1";
+function kvUrl2() {
+  return process.env.KV_REST_API_URL?.trim() || process.env.UPSTASH_REDIS_REST_URL?.trim();
+}
+function kvToken2() {
+  return process.env.KV_REST_API_TOKEN?.trim() || process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+}
+async function getKv2() {
+  const url = kvUrl2();
+  const token = kvToken2();
+  if (!url || !token) return null;
+  const { createClient } = await import("@vercel/kv");
+  return createClient({ url, token, automaticDeserialization: false });
+}
+function parseStored(raw) {
+  if (raw == null) return null;
+  if (typeof raw === "boolean") return raw;
+  const text = String(raw).trim().toLowerCase();
+  if (text === "true" || text === "1") return true;
+  if (text === "false" || text === "0") return false;
+  return null;
+}
 async function getCronTrackingEnabled() {
-  const db = serverDb();
-  if (!db) return { enabled: false, source: "default", reason: "Database unavailable" };
-  const { data, error } = await db.from("fleet_settings").select("tracking_enabled").eq("id", true).single();
-  if (error) return { enabled: false, source: "default", reason: "Tracking settings unavailable" };
-  return { enabled: data.tracking_enabled, source: "database" };
+  const kv = await getKv2();
+  if (!kv) {
+    return { enabled: true, source: "default", reason: "KV not configured" };
+  }
+  try {
+    const raw = await kv.get(KEY);
+    const parsed = parseStored(raw);
+    if (parsed === null) {
+      return { enabled: true, source: "default", reason: "unset" };
+    }
+    return { enabled: parsed, source: "kv" };
+  } catch (e) {
+    return {
+      enabled: true,
+      source: "default",
+      reason: e instanceof Error ? e.message : String(e)
+    };
+  }
 }
 
 // src/lib/server/real-fleet-roster.ts
@@ -341,20 +343,10 @@ function parseBatteryPercent(raw) {
   return Math.max(0, Math.min(100, b));
 }
 function normalizeSinotrackReport(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const id = raw.device_id ?? raw.imei;
-  if (typeof id !== "string") return null;
-  const vehicleId = id.trim();
-  if (!vehicleId || vehicleId.length > 160) return null;
-  const timestamp = raw.reported_at == null ? Date.now() : new Date(raw.reported_at).getTime();
-  if (!Number.isFinite(timestamp) || timestamp > Date.now() + 6e4) return null;
-  const rawLat = raw.lat ?? raw.latitude;
-  const rawLng = raw.lng ?? raw.longitude;
-  if ((rawLat != null || rawLng != null) && (typeof rawLat !== "number" || typeof rawLng !== "number" || !Number.isFinite(rawLat) || !Number.isFinite(rawLng) || Math.abs(rawLat) > 90 || Math.abs(rawLng) > 180)) return null;
-  const rawSpeed = raw.speed_kmh ?? raw.speed;
-  if (rawSpeed != null && (typeof rawSpeed !== "number" || !Number.isFinite(rawSpeed) || rawSpeed < 0 || rawSpeed > 200)) return null;
+  const vehicleId = (raw.device_id ?? raw.imei)?.trim();
+  if (!vehicleId) return null;
   const position = getPositionPercent(raw);
-  const reportedAt = new Date(timestamp).toISOString();
+  const reportedAt = raw.reported_at ? typeof raw.reported_at === "number" ? new Date(raw.reported_at).toISOString() : String(raw.reported_at) : (/* @__PURE__ */ new Date()).toISOString();
   const lat = raw.lat ?? raw.latitude;
   const lng = raw.lng ?? raw.longitude;
   const latitude = typeof lat === "number" ? lat : void 0;
@@ -375,27 +367,24 @@ function normalizeSinotrackReport(raw) {
   };
 }
 
-// src/lib/fleet/freshness.ts
-var GPS_STALE_MS = 5 * 60 * 1e3;
-
 // src/lib/server/tracker-state.ts
 var SIM_START = Date.now() - 60 * 60 * 1e3;
 
 // src/lib/server/tracker-history-kv.ts
 var HISTORY_KEY_PREFIX = "tracker:hist:v1:";
 var MAX_POINTS_PER_DEVICE = 500;
-function kvUrl2() {
+function kvUrl3() {
   return process.env.KV_REST_API_URL?.trim() || process.env.UPSTASH_REDIS_REST_URL?.trim();
 }
-function kvToken2() {
+function kvToken3() {
   return process.env.KV_REST_API_TOKEN?.trim() || process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 }
 async function getKvRaw() {
-  const url = kvUrl2();
-  const token = kvToken2();
+  const url = kvUrl3();
+  const token = kvToken3();
   if (!url || !token) return null;
-  const { createClient: createClient2 } = await import("@vercel/kv");
-  return createClient2({
+  const { createClient } = await import("@vercel/kv");
+  return createClient({
     url,
     token,
     automaticDeserialization: false
@@ -494,8 +483,8 @@ async function getSupabaseClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
-  const { createClient: createClient2 } = await import("@supabase/supabase-js");
-  const supabase = createClient2(url, key);
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(url, key);
   return {
     async upsert(row, opts) {
       let speedKmh = row.speed_kmh;
@@ -721,8 +710,8 @@ async function loadTrackerLatest() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return { rows: /* @__PURE__ */ new Map(), error: "SUPABASE env not configured" };
-  const { createClient: createClient2 } = await import("@supabase/supabase-js");
-  const supabase = createClient2(url, key);
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(url, key);
   const { data, error } = await supabase.from("tracker_latest").select("device_id, reported_at, scrape_interval_ms, ingest_enabled");
   if (error) return { rows: /* @__PURE__ */ new Map(), error: error.message };
   const out = /* @__PURE__ */ new Map();
@@ -782,10 +771,19 @@ async function handler(req, res) {
   return handle(req);
 }
 async function handle(request) {
-  const authorizedWorker = secretMatches(request.headers.get("x-tracker-poll-secret"), process.env.TRACKER_POLL_SECRET) || secretMatches(request.headers.get("authorization")?.replace(/^Bearer /i, "") ?? null, process.env.CRON_SECRET);
-  if (!authorizedWorker) {
-    const denied = await requireAdmin(request);
-    if (denied) return denied;
+  const pollSecret = process.env.TRACKER_POLL_SECRET;
+  const cronSecret = process.env.CRON_SECRET;
+  const userAgent = (request.headers.get("user-agent") ?? "").toLowerCase();
+  const looksLikeVercelCron = userAgent.startsWith("vercel-cron/");
+  if (pollSecret || cronSecret) {
+    const headerSecret = request.headers.get("x-tracker-poll-secret");
+    const bearer = request.headers.get("authorization");
+    const bearerSecret = bearer && bearer.startsWith("Bearer ") ? bearer.slice("Bearer ".length).trim() : null;
+    const okPollSecret = pollSecret ? headerSecret === pollSecret : false;
+    const okCronSecret = cronSecret ? bearerSecret === cronSecret : false;
+    if (!okPollSecret && !okCronSecret && !(looksLikeVercelCron && !cronSecret)) {
+      return jsonResponse(403, { ok: false, error: "Forbidden" });
+    }
   }
   const cronState = await getCronTrackingEnabled();
   if (!cronState.enabled) {
@@ -869,7 +867,7 @@ async function handle(request) {
         deferred_poll_devices: jobs.length,
         default_interval_ms: defaultIntervalMs,
         forced: force,
-        triggered_by: authorizedWorker ? "authenticated-worker" : "administrator",
+        triggered_by: looksLikeVercelCron ? "vercel-cron" : request.method,
         cron_tracking_enabled: cronState.enabled,
         cron_tracking_source: cronState.source,
         ...cronState.reason ? { cron_tracking_reason: cronState.reason } : {},
@@ -922,7 +920,7 @@ async function handle(request) {
     ...useGlobalFleetPoll ? { global_poll_interval_ms: GLOBAL_POLL_INTERVAL_MS, fleet_parallel_poll: true } : { fleet_parallel_poll: false },
     default_interval_ms: defaultIntervalMs,
     forced: force,
-    triggered_by: authorizedWorker ? "authenticated-worker" : "administrator",
+    triggered_by: looksLikeVercelCron ? "vercel-cron" : request.method,
     cron_tracking_enabled: cronState.enabled,
     cron_tracking_source: cronState.source,
     ...cronState.reason ? { cron_tracking_reason: cronState.reason } : {},

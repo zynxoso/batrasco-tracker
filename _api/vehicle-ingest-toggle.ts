@@ -1,5 +1,3 @@
-import { requireAdmin } from '../src/lib/server/access';
-import { nodeHandler } from '../src/lib/server/http-handler';
 /**
  * PATCH /api/vehicle-ingest-toggle
  * Body: { "device_id": "<imei>", "enabled": true | false }
@@ -9,7 +7,7 @@ import { nodeHandler } from '../src/lib/server/http-handler';
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Vehicle-Ingest-Toggle-Secret',
 };
 
 export async function OPTIONS() {
@@ -17,7 +15,13 @@ export async function OPTIONS() {
 }
 
 export async function PATCH(request: Request) {
-  const denied = await requireAdmin(request); if (denied) return denied;
+  const secret = process.env.VEHICLE_INGEST_TOGGLE_SECRET;
+  if (secret && request.headers.get('x-vehicle-ingest-toggle-secret') !== secret) {
+    return new Response(JSON.stringify({ ok: false, error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json', ...CORS },
+    });
+  }
 
   let body: { device_id?: string; deviceId?: string; enabled?: unknown };
   try {
@@ -93,5 +97,3 @@ export async function PATCH(request: Request) {
     headers: { 'Content-Type': 'application/json', ...CORS },
   });
 }
-
-export default nodeHandler({OPTIONS, PATCH});

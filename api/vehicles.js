@@ -1,8 +1,29 @@
-// src/lib/fleet/freshness.ts
-var GPS_STALE_MS = 5 * 60 * 1e3;
-function isGpsFresh(timestamp, now = Date.now()) {
-  const at = Date.parse(timestamp ?? "");
-  return Number.isFinite(at) && at <= now + 6e4 && now - at < GPS_STALE_MS;
+// src/lib/server/fleet-data-clock.ts
+var FLEET_DATA_AT_KEY = "tracker:fleet_data_at:v1";
+function kvUrl() {
+  return process.env.KV_REST_API_URL?.trim() || process.env.UPSTASH_REDIS_REST_URL?.trim();
+}
+function kvToken() {
+  return process.env.KV_REST_API_TOKEN?.trim() || process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
+}
+async function getKv() {
+  const url = kvUrl();
+  const token = kvToken();
+  if (!url || !token) return null;
+  const { createClient } = await import("@vercel/kv");
+  return createClient({ url, token, automaticDeserialization: false });
+}
+async function getLastFleetDataAt() {
+  const kv = await getKv();
+  if (!kv) return null;
+  try {
+    const raw = await kv.get(FLEET_DATA_AT_KEY);
+    if (raw == null) return null;
+    const n = Number(String(raw).trim());
+    return Number.isFinite(n) && n > 0 ? n : null;
+  } catch {
+    return null;
+  }
 }
 
 // src/lib/route/distance.ts
@@ -205,18 +226,18 @@ function getVehicles() {
 // src/lib/server/tracker-history-kv.ts
 var HISTORY_KEY_PREFIX = "tracker:hist:v1:";
 var MAX_POINTS_PER_DEVICE = 500;
-function kvUrl() {
+function kvUrl2() {
   return process.env.KV_REST_API_URL?.trim() || process.env.UPSTASH_REDIS_REST_URL?.trim();
 }
-function kvToken() {
+function kvToken2() {
   return process.env.KV_REST_API_TOKEN?.trim() || process.env.UPSTASH_REDIS_REST_TOKEN?.trim();
 }
 async function getKvRaw() {
-  const url = kvUrl();
-  const token = kvToken();
+  const url = kvUrl2();
+  const token = kvToken2();
   if (!url || !token) return null;
-  const { createClient: createClient2 } = await import("@vercel/kv");
-  return createClient2({
+  const { createClient } = await import("@vercel/kv");
+  return createClient({
     url,
     token,
     automaticDeserialization: false
@@ -343,8 +364,8 @@ async function getSupabaseClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
-  const { createClient: createClient2 } = await import("@supabase/supabase-js");
-  const supabase = createClient2(url, key);
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(url, key);
   return {
     async upsert(row, opts) {
       let speedKmh = row.speed_kmh;
@@ -486,6 +507,57 @@ async function getSupabaseClient() {
     }
   };
 }
+async function persistTrackerReport(report, opts) {
+  const db = await getSupabaseClient();
+  if (db) {
+    await db.upsert(report, opts);
+  } else {
+    let speedKmh = report.speed_kmh;
+    if (report.latitude != null && report.longitude != null && report.reported_at) {
+      const prev = memoryStore.get(report.vehicle_id);
+      if (prev?.latitude != null && prev?.longitude != null && prev?.reported_at) {
+        const t1 = new Date(prev.reported_at).getTime();
+        const t2 = new Date(report.reported_at).getTime();
+        const computed = speedKmhFromPoints(
+          prev.latitude,
+          prev.longitude,
+          t1,
+          report.latitude,
+          report.longitude,
+          t2
+        );
+        if (computed >= 0) speedKmh = Math.round(computed * 10) / 10;
+      }
+    }
+    const prevMem = memoryStore.get(report.vehicle_id);
+    const prevH = prevMem?.heading_toward_lipa === true ? true : prevMem?.heading_toward_lipa === false ? false : void 0;
+    const inferredMem = inferHeadingTowardLipa(
+      prevMem?.position_percent != null ? Number(prevMem.position_percent) : null,
+      Number(report.position_percent),
+      prevH
+    );
+    memoryStore.set(report.vehicle_id, {
+      ...report,
+      speed_kmh: speedKmh,
+      ...typeof inferredMem === "boolean" ? { heading_toward_lipa: inferredMem } : {}
+    });
+    const mem = memoryStore.get(report.vehicle_id);
+    await appendTrackerHistoryPoint({
+      device_id: mem.vehicle_id,
+      vehicle_name: mem.vehicle_name,
+      latitude: mem.latitude,
+      longitude: mem.longitude,
+      speed_kmh: Number(mem.speed_kmh),
+      position_percent: Number(mem.position_percent),
+      reported_at: mem.reported_at,
+      status: mem.status ?? "online",
+      direction: mem.direction != null ? Number(mem.direction) : void 0,
+      battery_percent: mem.battery_percent != null ? Number(mem.battery_percent) : void 0,
+      heading_toward_lipa: mem.heading_toward_lipa === true ? true : mem.heading_toward_lipa === false ? false : void 0,
+      stored_at: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  }
+}
 async function getLatestVehiclesFromDbWithMeta() {
   try {
     return await getLatestVehiclesFromDbWithMetaUnsafe();
@@ -543,12 +615,16 @@ async function getLatestVehiclesFromDbWithMetaUnsafe() {
       capacity: 20,
       trackerOnline: true
     };
+    if (fromFallback == null) {
+      const hash = r.vehicle_id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+      meta = { ...meta, passengers: 3 + hash % 15 };
+    }
     const name = r.vehicle_name;
     const plateNumber = typeof name === "string" && name.trim() ? name.trim() : meta.plateNumber;
     const reportedAt = new Date(r.reported_at).getTime();
     const positionPercent = r.latitude != null && r.longitude != null && Number.isFinite(r.latitude) && Number.isFinite(r.longitude) ? latLngToPositionPercent(r.latitude, r.longitude) : r.position_percent;
-    const trackerOnline = isGpsFresh(r.reported_at, now);
-    const status = trackerOnline && r.status !== "offline" ? "online" : "offline";
+    const trackerOnline = now - reportedAt < STALE_MS;
+    const status = r.status === "offline" || r.status === "online" ? r.status : trackerOnline ? "online" : "offline";
     const h = r.heading_toward_lipa;
     const towardLipa = resolveDirectionAlongRoute({
       headingTowardLipa: h === true ? true : h === false ? false : void 0,
@@ -566,14 +642,14 @@ async function getLatestVehiclesFromDbWithMetaUnsafe() {
       currentPosition: positionPercent,
       speed: r.speed_kmh,
       status,
-      passengers: null,
+      passengers: meta.passengers,
       capacity: meta.capacity,
       trackerOnline,
       remainingDistancePercent,
       remainingDistanceKm,
-      lastUpdated: r.reported_at,
+      lastUpdated: typeof r.updated_at === "string" && r.updated_at.trim() ? r.updated_at : r.reported_at,
       ...r.latitude != null && r.longitude != null ? { latitude: r.latitude, longitude: r.longitude } : {},
-      etaInDirectionOfTravel: trackerOnline ? etaInDirectionOfTravel : "Unavailable",
+      etaInDirectionOfTravel,
       ...h === true || h === false ? { headingTowardLipa: h } : {},
       ...r.direction != null && !Number.isNaN(Number(r.direction)) ? { direction: Number(r.direction) } : {},
       ingestEnabled: r.ingest_enabled !== false,
@@ -603,102 +679,345 @@ async function getLatestVehiclesFromDbWithMetaUnsafe() {
   return { vehicles: sortByRealFleetRoster(vehicles), source: "database" };
 }
 
-// src/lib/server/access.ts
-import { createClient } from "@supabase/supabase-js";
-function serverDb() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  return url && key ? createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) : null;
+// src/lib/server/sinotrack-types.ts
+function getPositionPercent(raw) {
+  if (typeof raw.position_percent === "number") return Math.min(100, Math.max(0, raw.position_percent));
+  const lat = raw.lat ?? raw.latitude;
+  const lng = raw.lng ?? raw.longitude;
+  if (typeof lat === "number" && typeof lng === "number") return latLngToPositionPercent(lat, lng);
+  return 0;
 }
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-}
-async function requireAdmin(request) {
-  const token = request.headers.get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
-  if (!token) return json({ error: "Sign-in required" }, 401);
-  const db = serverDb();
-  if (!db) return json({ error: "Administration is not configured" }, 503);
-  try {
-    const { data, error } = await db.auth.getUser(token);
-    if (error || !data.user) return json({ error: "Session expired or invalid" }, 401);
-    const role = await db.from("fleet_admins").select("user_id").eq("user_id", data.user.id).maybeSingle();
-    if (role.error) return json({ error: "Administration setup is incomplete" }, 503);
-    return role.data ? null : json({ error: "Administrator access required" }, 403);
-  } catch {
-    return json({ error: "Authentication service unavailable" }, 503);
+function parseDirection(raw) {
+  const d = raw.direction;
+  if (typeof d === "number" && !Number.isNaN(d)) return d;
+  if (typeof d === "string" && d.trim() !== "") {
+    const n = Number(d);
+    if (!Number.isNaN(n)) return n;
   }
+  return void 0;
 }
-
-// src/lib/server/http-handler.ts
-function nodeHandler(methods) {
-  return async (req, res) => {
-    let response;
-    try {
-      const method = req.method || "GET";
-      const headers = new Headers();
-      if (req instanceof Request) req.headers.forEach((value, key) => headers.set(key, value));
-      else for (const [key, value] of Object.entries(req.headers ?? {})) if (value) headers.set(key, String(value));
-      const body = !["GET", "HEAD"].includes(method) && req.body != null ? typeof req.body === "string" ? req.body : JSON.stringify(req.body) : void 0;
-      const request = req instanceof Request ? req : new Request(`http://localhost${req.url}`, { method, headers, body });
-      response = methods[method] ? await methods[method](request) : new Response("Method not allowed", { status: 405, headers: { Allow: Object.keys(methods).join(", ") } });
-    } catch {
-      response = new Response(JSON.stringify({ error: "Request could not be completed" }), { status: 500, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-    }
-    if (!res) return response;
-    res.statusCode = response.status;
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-    res.end(await response.text());
+function parseBatteryPercent(raw) {
+  const b = raw.battery_percent;
+  if (typeof b !== "number" || Number.isNaN(b)) return void 0;
+  return Math.max(0, Math.min(100, b));
+}
+function normalizeSinotrackReport(raw) {
+  const vehicleId = (raw.device_id ?? raw.imei)?.trim();
+  if (!vehicleId) return null;
+  const position = getPositionPercent(raw);
+  const reportedAt = raw.reported_at ? typeof raw.reported_at === "number" ? new Date(raw.reported_at).toISOString() : String(raw.reported_at) : (/* @__PURE__ */ new Date()).toISOString();
+  const lat = raw.lat ?? raw.latitude;
+  const lng = raw.lng ?? raw.longitude;
+  const latitude = typeof lat === "number" ? lat : void 0;
+  const longitude = typeof lng === "number" ? lng : void 0;
+  const direction = parseDirection(raw);
+  const battery_percent = parseBatteryPercent(raw);
+  const status = raw.status === "online" || raw.status === "offline" ? raw.status : void 0;
+  const speedFromPayload = typeof raw.speed_kmh === "number" ? raw.speed_kmh : typeof raw.speed === "number" ? raw.speed : void 0;
+  return {
+    vehicle_id: vehicleId,
+    speed_kmh: speedFromPayload ?? 0,
+    position_percent: position,
+    reported_at: reportedAt,
+    ...latitude != null && longitude != null ? { latitude, longitude } : {},
+    ...direction != null ? { direction } : {},
+    ...battery_percent != null ? { battery_percent } : {},
+    ...status != null ? { status } : {}
   };
 }
 
-// src/lib/fleet/registry.ts
-var DEFAULT_ROUTE_ID = "00000000-0000-4000-8000-000000000001";
+// src/lib/server/sinotrack-live.ts
+import crypto from "crypto";
+var ROW = "";
+var TABLE = "\x1B";
+function md5HexUtf8(s) {
+  return crypto.createHash("md5").update(s, "utf8").digest("hex");
+}
+function generateMgtsRandomString() {
+  return `MGTS_${Math.floor(1e14 * Math.random())}`;
+}
+function stripMgtsPrefix(full) {
+  return String(full).replace(/^MGTS_/, "");
+}
+function urlOrigin(input) {
+  const trimmed = String(input || "").trim();
+  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const match = withProto.match(/^(https?):\/\/([^/?#]+)/i);
+  if (!match) return "https://pro.sinotrack.com";
+  return `${match[1].toLowerCase()}://${match[2].toLowerCase()}`;
+}
+function urlHostname(input) {
+  const trimmed = String(input || "").trim();
+  const withProto = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  const match = withProto.match(/^https?:\/\/([^/?#]+)/i);
+  return match ? match[1].toLowerCase() : "";
+}
+function serverUrlToStrAppID(serverUrl) {
+  let normalized = String(serverUrl || "").toLowerCase().replace(/^https?:\/\//, "");
+  while (normalized.length % 3 !== 0) normalized += "/";
+  return Buffer.from(normalized, "utf8").toString("base64");
+}
+function buildDataSegment(dataParts) {
+  if (!Array.isArray(dataParts) || dataParts.length === 0) return "";
+  return dataParts.map((p) => `N'${String(p).replace(/'/g, "''")}'`).join(",");
+}
+function buildStrToken(cmd, dataSegment, field = "") {
+  let result = `${cmd}${ROW}${dataSegment}${ROW}${field}${ROW}`;
+  result += TABLE;
+  while (result.length % 3 !== 0) {
+    result += generateMgtsRandomString().charAt(7);
+  }
+  return Buffer.from(result, "latin1").toString("base64");
+}
+function buildSignedFormFields(serverUrl, strUser, cmd, dataParts) {
+  const strAppID = serverUrlToStrAppID(serverUrl);
+  const nTimeStamp = String(Date.now());
+  const strRandom = stripMgtsPrefix(generateMgtsRandomString());
+  const dataSegment = buildDataSegment(dataParts);
+  const strToken = buildStrToken(cmd, dataSegment, "");
+  const strSign = md5HexUtf8(nTimeStamp + strRandom + strUser + strAppID + strToken);
+  return { strAppID, strUser, nTimeStamp, strRandom, strSign, strToken };
+}
+function resolvedPageOrigin(serverUrl, explicitOrigin) {
+  if (explicitOrigin && explicitOrigin.trim()) {
+    const origin = explicitOrigin.trim();
+    return origin.startsWith("http") ? origin : `https://${origin}`;
+  }
+  const host = urlHostname(serverUrl);
+  if (/^\d+\.sinotrack\.com$/i.test(host)) return "https://pro.sinotrack.com";
+  return urlOrigin(serverUrl);
+}
+function browserLikeHeaders(serverUrl, pageOrigin) {
+  const origin = urlOrigin(pageOrigin || resolvedPageOrigin(serverUrl));
+  return {
+    accept: "text/plain, */*; q=0.01",
+    origin,
+    referer: `${origin}/`,
+    "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+    "sec-fetch-dest": "empty",
+    "sec-fetch-mode": "cors",
+    "sec-fetch-site": "same-site"
+  };
+}
+function urlEncodeFormFields(fields) {
+  return Object.entries(fields).map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`).join("&");
+}
+function loginCmdForType(loginType) {
+  const t = Number(loginType);
+  if (t === 2) return "Proc_LoginIMEI";
+  if (t === 1) return "Proc_LoginAnother";
+  return "Proc_Login";
+}
+function parseRows(data) {
+  if (!data || typeof data !== "object") return [];
+  const d = data;
+  if (!Array.isArray(d.m_arrField) || !Array.isArray(d.m_arrRecord)) return [];
+  const fields = d.m_arrField;
+  const ix = (name) => fields.indexOf(name);
+  const iTe = ix("strTEID");
+  const iLat = ix("dbLat");
+  const iLon = ix("dbLon");
+  const iTime = ix("nTime");
+  const iDir = ix("nDirection");
+  if (iTe < 0 || iLat < 0 || iLon < 0) return [];
+  return d.m_arrRecord.map((rowRaw) => {
+    if (!Array.isArray(rowRaw)) return null;
+    const row = rowRaw;
+    const device_id = String(row[iTe] ?? "").trim();
+    const lat = Number(row[iLat]);
+    const lng = Number(row[iLon]);
+    if (!device_id || !Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const t = iTime >= 0 ? Number(row[iTime]) : Date.now();
+    const reported_at = Number.isFinite(t) ? t > 1e12 ? t : Math.round(t * 1e3) : Date.now();
+    const direction = iDir >= 0 ? Number(row[iDir]) : void 0;
+    return {
+      device_id,
+      lat,
+      lng,
+      reported_at,
+      ...Number.isFinite(direction) ? { direction } : {}
+    };
+  }).filter((v) => v !== null);
+}
+async function fetchSinotrackLiveReportsFromEnv() {
+  const enabled = process.env.SINOTRACK_LIVE_SCRAPE === "1";
+  const strUser = process.env.SINOTRACK_APPJSON_USER;
+  if (!enabled || !strUser) return [];
+  const serverUrl = process.env.SINOTRACK_APPJSON_SERVER || "https://246.sinotrack.com/";
+  const appJsonUrl = `${urlOrigin(serverUrl)}/APP/AppJson.asp`;
+  const pageOrigin = resolvedPageOrigin(serverUrl, process.env.SINOTRACK_APPJSON_ORIGIN);
+  const baseHeaders = browserLikeHeaders(serverUrl, pageOrigin);
+  const password = process.env.SINOTRACK_APPJSON_PASSWORD;
+  if (password) {
+    const loginCmd = loginCmdForType(process.env.SINOTRACK_APPJSON_LOGIN_TYPE);
+    const loginFields = buildSignedFormFields(serverUrl, strUser, loginCmd, [strUser, password]);
+    const loginRes = await fetch(appJsonUrl, {
+      method: "POST",
+      headers: {
+        ...baseHeaders,
+        "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+        "x-requested-with": "XMLHttpRequest"
+      },
+      body: urlEncodeFormFields(loginFields)
+    });
+    if (!loginRes.ok && process.env.SINOTRACK_APPJSON_STRICT_LOGIN === "1") return [];
+  }
+  const cmd = process.env.SINOTRACK_APPJSON_CMD || "Proc_GetLastPosition";
+  const argsRaw = process.env.SINOTRACK_APPJSON_ARGS;
+  const args = argsRaw ? argsRaw.split(",").map((s) => s.trim()).filter(Boolean) : [strUser];
+  const fields = buildSignedFormFields(serverUrl, strUser, cmd, args);
+  const res = await fetch(appJsonUrl, {
+    method: "POST",
+    headers: {
+      ...baseHeaders,
+      "content-type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "x-requested-with": "XMLHttpRequest"
+    },
+    body: urlEncodeFormFields(fields)
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return parseRows(data);
+}
 
 // _api/vehicles.ts
-import { createHash } from "node:crypto";
-async function GET(request) {
-  const admin = new URL(request.url).searchParams.get("admin") === "true";
-  if (admin) {
-    const denied = await requireAdmin(request);
-    if (denied) return denied;
+function maxReportedAtMsFromVehicles(vehicles) {
+  let m = 0;
+  for (const v of vehicles) {
+    if (!v.lastUpdated) continue;
+    const t = new Date(v.lastUpdated).getTime();
+    if (Number.isFinite(t)) m = Math.max(m, t);
   }
-  const db = serverDb();
-  if (!db) return json({ error: "Vehicle service unavailable" }, 503);
-  const registry = await db.from("fleet_vehicles").select("id,plate_number,device_id,capacity,availability,route_id,fleet_drivers(name)").is("archived_at", null);
-  if (registry.error) return json({ error: "Fleet setup is incomplete" }, 503);
-  const feed = await getLatestVehiclesFromDbWithMeta();
-  if (feed.error) return json({ error: "Location updates unavailable" }, 503);
-  const byDevice = new Map(feed.vehicles.map((v) => [v.id, v]));
-  const vehicles = registry.data.filter((row) => admin || row.availability === "active" && row.route_id === DEFAULT_ROUTE_ID).map((row) => {
-    const v = row.device_id ? byDevice.get(row.device_id) : null;
-    const driver = row.fleet_drivers?.name;
-    return {
-      id: admin ? row.device_id || row.id : row.id,
-      plateNumber: row.plate_number,
-      driver: admin ? driver || "Unassigned" : "",
-      capacity: row.capacity,
-      passengers: null,
-      currentPosition: v?.currentPosition ?? 0,
-      speed: v?.trackerOnline ? v.speed : 0,
-      status: v?.status ?? "offline",
-      trackerOnline: v?.trackerOnline ?? false,
-      lastUpdated: v?.lastUpdated ?? "",
-      latitude: v?.latitude,
-      longitude: v?.longitude,
-      etaInDirectionOfTravel: v?.trackerOnline ? v.etaInDirectionOfTravel : "Unavailable",
-      headingTowardLipa: v?.headingTowardLipa,
-      direction: v?.direction,
-      ingestEnabled: v?.ingestEnabled ?? true,
-      ...admin ? { scrapeIntervalMs: v?.scrapeIntervalMs } : {}
-    };
-  });
-  const body = JSON.stringify(vehicles);
-  const etag = `"${createHash("sha256").update(body).digest("hex")}"`;
-  const headers = { "Content-Type": "application/json", "Cache-Control": admin ? "private, no-store" : "public, max-age=0, s-maxage=10", ETag: etag, "X-Vehicles-Source": "database" };
-  return request.headers.get("if-none-match") === etag ? new Response(null, { status: 304, headers }) : new Response(body, { headers });
+  return m;
 }
-var vehicles_default = nodeHandler({ GET });
+async function fleetDataAtMsForResponse(vehicles) {
+  const kvMs = await getLastFleetDataAt();
+  const dbMax = maxReportedAtMsFromVehicles(vehicles);
+  const merged = Math.max(kvMs ?? 0, dbMax);
+  return merged > 0 ? merged : Date.now();
+}
+function simpleHash(obj) {
+  const str = JSON.stringify(obj);
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h << 5) - h + str.charCodeAt(i) | 0;
+  return Math.abs(h).toString(36);
+}
+function sanitizeHeader(val) {
+  if (!val) return void 0;
+  return val.replace(/[\r\n\t]+/g, " ").replace(/[^\x20-\x7E]/g, "").trim().slice(0, 500);
+}
+function commonHeaders(etag, source, error, fleetDataAtMs) {
+  const h = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Expose-Headers": "ETag, X-Vehicles-Source, X-Vehicles-Error, X-Fleet-Data-At",
+    ETag: etag,
+    "X-Vehicles-Source": source
+  };
+  if (error) {
+    const cleanError = sanitizeHeader(error);
+    if (cleanError) h["X-Vehicles-Error"] = cleanError;
+  }
+  if (fleetDataAtMs != null && Number.isFinite(fleetDataAtMs)) {
+    h["X-Fleet-Data-At"] = String(Math.round(fleetDataAtMs));
+  }
+  return h;
+}
+async function GET(request) {
+  try {
+    const liveReports = await fetchSinotrackLiveReportsFromEnv();
+    if (liveReports.length > 0) {
+      for (const report of liveReports) {
+        const normalized = normalizeSinotrackReport(report);
+        if (!normalized) continue;
+        await persistTrackerReport(normalized);
+      }
+    }
+    const { vehicles, source, error } = await getLatestVehiclesFromDbWithMeta();
+    const etag = `"${simpleHash(vehicles)}"`;
+    const fleetDataAtMs = await fleetDataAtMsForResponse(vehicles);
+    const ifNoneMatch = typeof request?.headers?.get === "function" ? request.headers.get("if-none-match") : request?.headers?.["if-none-match"];
+    if (ifNoneMatch === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: { ...commonHeaders(etag, source, error, fleetDataAtMs), Pragma: "no-cache" }
+      });
+    }
+    return new Response(JSON.stringify(vehicles), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...commonHeaders(etag, source, error, fleetDataAtMs),
+        "Pragma": "no-cache"
+      }
+    });
+  } catch (e) {
+    const message = sanitizeHeader(e instanceof Error ? e.message : String(e)) ?? "Internal Error";
+    const emptyEtag = '"0"';
+    try {
+      const fleetDataAtMs = await fleetDataAtMsForResponse([]);
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          ...commonHeaders(emptyEtag, "fallback", message, fleetDataAtMs),
+          "Pragma": "no-cache"
+        }
+      });
+    } catch {
+      return new Response(JSON.stringify([]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+  }
+}
+async function handler(req, res) {
+  if (res && typeof res.status === "function") {
+    try {
+      const liveReports = await fetchSinotrackLiveReportsFromEnv();
+      if (liveReports.length > 0) {
+        for (const report of liveReports) {
+          const normalized = normalizeSinotrackReport(report);
+          if (!normalized) continue;
+          await persistTrackerReport(normalized);
+        }
+      }
+      const { vehicles, source, error } = await getLatestVehiclesFromDbWithMeta();
+      const etag = `"${simpleHash(vehicles)}"`;
+      const fleetDataAtMs = await fleetDataAtMsForResponse(vehicles);
+      const ifNoneMatch = req.headers?.["if-none-match"];
+      if (ifNoneMatch === etag) {
+        res.status(304).end();
+        return;
+      }
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+      res.setHeader("Access-Control-Allow-Origin", "*");
+      res.setHeader("Access-Control-Expose-Headers", "ETag, X-Vehicles-Source, X-Vehicles-Error, X-Fleet-Data-At");
+      res.setHeader("ETag", etag);
+      res.setHeader("X-Vehicles-Source", source);
+      if (error) {
+        const clean = sanitizeHeader(error);
+        if (clean) res.setHeader("X-Vehicles-Error", clean);
+      }
+      if (fleetDataAtMs != null && Number.isFinite(fleetDataAtMs)) {
+        res.setHeader("X-Fleet-Data-At", String(Math.round(fleetDataAtMs)));
+      }
+      res.status(200).json(vehicles);
+      return;
+    } catch (e) {
+      const message = sanitizeHeader(e instanceof Error ? e.message : String(e)) ?? "Internal Error";
+      res.setHeader("Content-Type", "application/json");
+      res.setHeader("X-Vehicles-Source", "fallback");
+      res.setHeader("X-Vehicles-Error", message);
+      res.status(200).json([]);
+      return;
+    }
+  }
+  return GET(req);
+}
 export {
   GET,
-  vehicles_default as default
+  handler as default
 };

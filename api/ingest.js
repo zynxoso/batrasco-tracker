@@ -1,42 +1,3 @@
-// src/lib/server/access.ts
-import { createClient } from "@supabase/supabase-js";
-import { timingSafeEqual } from "node:crypto";
-function json(body, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-}
-function secretMatches(value, secret) {
-  if (!value || !secret) return false;
-  const a = Buffer.from(value);
-  const b = Buffer.from(secret);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
-function requireIngest(request) {
-  if (!process.env.TRACKER_INGEST_SECRET) return json({ error: "GPS ingestion is not configured" }, 503);
-  return secretMatches(request.headers.get("authorization")?.replace(/^Bearer /i, "") ?? null, process.env.TRACKER_INGEST_SECRET) ? null : json({ error: "Unauthorized gateway" }, 401);
-}
-
-// src/lib/server/http-handler.ts
-function nodeHandler(methods) {
-  return async (req, res) => {
-    let response;
-    try {
-      const method = req.method || "GET";
-      const headers = new Headers();
-      if (req instanceof Request) req.headers.forEach((value, key) => headers.set(key, value));
-      else for (const [key, value] of Object.entries(req.headers ?? {})) if (value) headers.set(key, String(value));
-      const body = !["GET", "HEAD"].includes(method) && req.body != null ? typeof req.body === "string" ? req.body : JSON.stringify(req.body) : void 0;
-      const request = req instanceof Request ? req : new Request(`http://localhost${req.url}`, { method, headers, body });
-      response = methods[method] ? await methods[method](request) : new Response("Method not allowed", { status: 405, headers: { Allow: Object.keys(methods).join(", ") } });
-    } catch {
-      response = new Response(JSON.stringify({ error: "Request could not be completed" }), { status: 500, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } });
-    }
-    if (!res) return response;
-    res.statusCode = response.status;
-    response.headers.forEach((value, key) => res.setHeader(key, value));
-    res.end(await response.text());
-  };
-}
-
 // src/lib/route/distance.ts
 function distanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -151,20 +112,10 @@ function parseBatteryPercent(raw) {
   return Math.max(0, Math.min(100, b));
 }
 function normalizeSinotrackReport(raw) {
-  if (!raw || typeof raw !== "object") return null;
-  const id = raw.device_id ?? raw.imei;
-  if (typeof id !== "string") return null;
-  const vehicleId = id.trim();
-  if (!vehicleId || vehicleId.length > 160) return null;
-  const timestamp = raw.reported_at == null ? Date.now() : new Date(raw.reported_at).getTime();
-  if (!Number.isFinite(timestamp) || timestamp > Date.now() + 6e4) return null;
-  const rawLat = raw.lat ?? raw.latitude;
-  const rawLng = raw.lng ?? raw.longitude;
-  if ((rawLat != null || rawLng != null) && (typeof rawLat !== "number" || typeof rawLng !== "number" || !Number.isFinite(rawLat) || !Number.isFinite(rawLng) || Math.abs(rawLat) > 90 || Math.abs(rawLng) > 180)) return null;
-  const rawSpeed = raw.speed_kmh ?? raw.speed;
-  if (rawSpeed != null && (typeof rawSpeed !== "number" || !Number.isFinite(rawSpeed) || rawSpeed < 0 || rawSpeed > 200)) return null;
+  const vehicleId = (raw.device_id ?? raw.imei)?.trim();
+  if (!vehicleId) return null;
   const position = getPositionPercent(raw);
-  const reportedAt = new Date(timestamp).toISOString();
+  const reportedAt = raw.reported_at ? typeof raw.reported_at === "number" ? new Date(raw.reported_at).toISOString() : String(raw.reported_at) : (/* @__PURE__ */ new Date()).toISOString();
   const lat = raw.lat ?? raw.latitude;
   const lng = raw.lng ?? raw.longitude;
   const latitude = typeof lat === "number" ? lat : void 0;
@@ -185,9 +136,6 @@ function normalizeSinotrackReport(raw) {
   };
 }
 
-// src/lib/fleet/freshness.ts
-var GPS_STALE_MS = 5 * 60 * 1e3;
-
 // src/lib/server/tracker-state.ts
 var SIM_START = Date.now() - 60 * 60 * 1e3;
 
@@ -204,8 +152,8 @@ async function getKvRaw() {
   const url = kvUrl();
   const token = kvToken();
   if (!url || !token) return null;
-  const { createClient: createClient2 } = await import("@vercel/kv");
-  return createClient2({
+  const { createClient } = await import("@vercel/kv");
+  return createClient({
     url,
     token,
     automaticDeserialization: false
@@ -319,8 +267,8 @@ async function getSupabaseClient() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_ANON_KEY;
   if (!url || !key) return null;
-  const { createClient: createClient2 } = await import("@supabase/supabase-js");
-  const supabase = createClient2(url, key);
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(url, key);
   return {
     async upsert(row, opts) {
       let speedKmh = row.speed_kmh;
@@ -518,7 +466,7 @@ async function persistTrackerReport(report, opts) {
 var CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization"
+  "Access-Control-Allow-Headers": "Content-Type"
 };
 async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS_HEADERS });
@@ -538,8 +486,6 @@ function describeError(e) {
   return String(e);
 }
 async function POST(request) {
-  const denied = requireIngest(request);
-  if (denied) return denied;
   if (request.headers.get("content-type")?.includes("application/json") === false) {
     return new Response(JSON.stringify({ error: "Content-Type must be application/json" }), {
       status: 400,
@@ -571,7 +517,6 @@ async function POST(request) {
     speed: body.speed
   } : null;
   const reports = Array.isArray(body.reports) ? body.reports : single ? [single] : [];
-  if (reports.length > 100) return new Response("Batch limit is 100", { status: 413 });
   const normalized = reports.map((r) => normalizeSinotrackReport(r)).filter((r) => r !== null);
   if (normalized.length === 0) {
     return new Response(JSON.stringify({ error: "No valid reports (need device_id or imei per report)", inserted: 0 }), {
@@ -594,9 +539,7 @@ async function POST(request) {
     headers: { "Content-Type": "application/json", ...CORS_HEADERS }
   });
 }
-var ingest_default = nodeHandler({ OPTIONS, POST });
 export {
   OPTIONS,
-  POST,
-  ingest_default as default
+  POST
 };

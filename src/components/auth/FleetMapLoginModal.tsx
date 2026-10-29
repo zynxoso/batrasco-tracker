@@ -42,18 +42,19 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsSubmitting(true);
 
-    try {
-      await verifyAndAuthorizeAdmin(username, password);
-      setPassword('');
+    const valid = verifyAndAuthorizeAdmin(username, password);
+    if (valid) {
+      setIsSubmitting(false);
       onSuccess();
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Unable to sign in.');
-    } finally { setIsSubmitting(false); }
+    } else {
+      setIsSubmitting(false);
+      setError('Invalid username or password. Please try again.');
+    }
   };
 
   return (
@@ -64,7 +65,7 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
       aria-labelledby="fleet-modal-title"
     >
       <div
-        className="relative max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-slate-200/90 bg-white shadow-2xl shadow-slate-900/25 transition-all"
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-2xl shadow-slate-900/25 transition-all"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Top accent bar matching system brand colors */}
@@ -101,13 +102,13 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                 id="fleet-modal-title"
                 className="text-lg font-bold leading-tight text-[#17256b]"
               >
-                Fleet map sign in
+                Security Verification
               </h2>
             </div>
           </div>
 
           <p className="mt-3 text-xs leading-relaxed text-slate-500">
-            Enter your administrator username and password to access the <strong>Fleet map</strong> and manage fleet records.
+            Please enter your operator credentials to access the <strong>Fleet Map</strong> controls and live telemetry.
           </p>
 
           {/* Form */}
@@ -139,8 +140,6 @@ export function FleetMapLoginModal({ isOpen, onClose, onSuccess }: FleetMapLogin
                   type="text"
                   required
                   autoComplete="username"
-                  autoCapitalize="none"
-                  spellCheck={false}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter username"

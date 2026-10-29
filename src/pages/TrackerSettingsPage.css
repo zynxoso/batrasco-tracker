@@ -4,7 +4,6 @@
  */
 
 .tracker-settings-page__split {
-  position: relative;
   display: flex;
   flex: 1 1 0%;
   flex-direction: row;
@@ -27,11 +26,11 @@
 
 @media (max-width: 767.98px) {
   .tracker-settings-page__sidebar {
-    position: absolute;
+    position: fixed;
     left: 0;
-    top: 0;
+    top: 2.75rem;
     bottom: 0;
-    width: min(calc(100% - 48px), 320px);
+    width: min(100vw - 0px, 320px);
     max-width: 320px;
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.12);
     transform: translateX(-100%);
@@ -86,7 +85,7 @@
 }
 
 .tracker-settings-page__drawer-backdrop {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 1090;
   border: none;
@@ -2395,27 +2394,4 @@ body.dark .tracker-settings-page.tracker-ui .tracker-settings-page__alert-succes
 .tracker-settings-page [data-scroll-region='tracker-devices']::-webkit-scrollbar-track,
 .tracker-settings-page [data-scroll-region='tracker-history']::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.04);
-}
-/* Keep map space and controls usable as the navigation wraps or the viewport shrinks. */
-.tracker-settings-page.tracker-ui .tracker-settings-page__topbar{min-width:0;gap:8px;padding:8px 12px}
-.tracker-settings-page.tracker-ui .tracker-settings-page__topbar>button{min-height:40px;min-width:40px}
-.tracker-settings-page.tracker-ui .tracker-settings-page__hud-top{width:auto;max-height:calc(100% - 32px);overflow-y:auto;overscroll-behavior:contain}
-.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout{max-height:65%;min-height:0}
-.tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout-scroll{flex:1;min-height:0;overflow-y:auto}
-@media(max-width:1100px){
-  .tracker-settings-page__map-main{overflow-y:auto;overscroll-behavior:contain}
-  .tracker-settings-page__map-fill{position:relative;inset:auto;height:clamp(320px,55dvh,520px)}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__hud-top{position:relative;inset:auto;width:100%;max-height:none;overflow:visible;padding:12px}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__hud-top-inner{max-width:none}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__hud-top-right{align-items:stretch}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__map-controls,.tracker-settings-page.tracker-ui .tracker-settings-page__map-selected-float{width:100%;max-width:none}
-  .tracker-settings-page__topbar-tabs{margin-left:0}
-}
-@media(max-width:767.98px){
-  .tracker-settings-page.tracker-ui .tracker-settings-page__topbar{justify-content:center;gap:6px}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__topbar-stats{justify-content:center;flex:1 1 160px}
-  .tracker-settings-page__mobile-only--text{display:none}
-  .tracker-settings-page__sidebar:not([data-drawer-open]){visibility:hidden;pointer-events:none}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__device-detail-popout{max-height:60%}
-  .tracker-settings-page.tracker-ui .tracker-settings-page__track-validator-modal{max-height:calc(100dvh - 32px)}
 }
